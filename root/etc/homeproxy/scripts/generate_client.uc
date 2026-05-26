@@ -54,6 +54,14 @@ const ntp_server = uci.get(uciconfig, uciinfra, 'ntp_server') || 'time.apple.com
 
 const ipv6_support = uci.get(uciconfig, ucimain, 'ipv6_support') || '0';
 
+const enable_clash_api = uci.get(uciconfig, 'experimental', 'enable_clash_api') || '0';
+const external_controller = uci.get(uciconfig, 'experimental', 'external_controller') || '127.0.0.1:9090';
+const external_ui = uci.get(uciconfig, 'experimental', 'external_ui');
+const external_ui_download_url = uci.get(uciconfig, 'experimental', 'external_ui_download_url');
+const external_ui_download_detour = uci.get(uciconfig, 'experimental', 'external_ui_download_detour');
+const secret = uci.get(uciconfig, 'experimental', 'secret');
+const default_mode = uci.get(uciconfig, 'experimental', 'default_mode');
+
 let main_node, main_udp_node, dedicated_udp_node, default_outbound, default_outbound_dns,
     domain_strategy, sniff_override, dns_server, china_dns_server, dns_default_strategy,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
@@ -965,7 +973,15 @@ if (routing_mode in ['bypass_mainland_china', 'custom']) {
 			enabled: true,
 			path: RUN_DIR + '/cache.db',
 			store_rdrc: strToBool(cache_file_store_rdrc),
-			rdrc_timeout: strToTime(cache_file_rdrc_timeout),
+			rdrc_timeout: strToTime(cache_file_rdrc_timeout)
+		},
+		clash_api: {
+			external_controller: (enable_clash_api === '1') ? external_controller : null,
+			external_ui: external_ui,
+			external_ui_download_url: external_ui_download_url,
+			external_ui_download_detour: external_ui_download_detour,
+			secret: secret,
+			default_mode: default_mode
 		}
 	};
 }
