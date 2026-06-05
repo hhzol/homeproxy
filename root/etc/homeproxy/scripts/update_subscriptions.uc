@@ -518,7 +518,7 @@ function main() {
 
 			if (filter_check(config.label))
 				log(sprintf('Skipping blacklist node: %s.', config.label));
-			else if (node_cache[groupHash][confHash] || node_cache[groupHash][nameHash])
+			else if (node_cache[groupHash][confHash])
 				log(sprintf('Skipping duplicate node: %s.', config.label));
 			else {
 				if (config.tls === '1' && allow_insecure === '1')
@@ -578,12 +578,29 @@ function main() {
 			node_cache[cfg.grouphash][cfg['.name']].isExisting = true;
 		}
 	});
+	let labelCount = {};
 	for (let nodes in node_result)
 		map(nodes, (node) => {
 			if (node.isExisting)
 				return null;
 
-			const nameHash = md5(node.label);
+			let label = node.label || `${node.type}:${node.address}:${node.port}`;
+
+			if (!labelCount[label])
+				labelCount[label] = 1;
+			else
+				labelCount[label]++;
+
+			if (labelCount[label] > 1)
+				label = `${label} (${labelCount[label]})`;
+
+			node.label = label;
+
+			const nameHash = md5(
+				(node.type || '') + '|' +
+				(node.address || '') + '|' +
+				(node.port || '') 
+			);
 			uci.set(uciconfig, nameHash, 'node');
 			map(keys(node), (v) => uci.set(uciconfig, nameHash, v, node[v]));
 
