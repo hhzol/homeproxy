@@ -12,6 +12,7 @@
 'require uci';
 'require validation';
 'require view';
+'require ui';
 
 'require homeproxy as hp';
 'require tools.firewall as fwtool';
@@ -37,6 +38,274 @@ const callWriteDomainList = rpc.declare({
 	params: ['type', 'content'],
 	expect: { '': {} }
 });
+
+function openNodeManager(section_id, grid) {
+    const config = 'homeproxy';
+
+    let allNodes = [];
+    let selectedNodes = [];
+
+    let listContainer;
+    /* ---------------------------
+     * 1. 读取所有节点
+     * --------------------------- */
+	uci.sections(config, 'routing_node', function(s) {
+		// 排除当前正在编辑的节点组
+		if (s['.name'] === section_id)
+			return;
+
+		// 排除引用了自己（section_id）的节点组
+		let urltest_nodes = s.urltest_nodes || [];
+		// some() 会判断数组里是否有任意元素 === section_id
+		if (urltest_nodes.some(id => id === section_id))
+			return;
+
+		allNodes.push({
+			id: s['.name'],
+			label: s.label || s['.name']
+		});
+	});
+
+    uci.sections(config, 'node', function(s) {
+        allNodes.push({
+            id: s['.name'],
+            label: s.label || s['.name']
+        });
+    });
+
+	let groupLabel = section_id;
+	
+	uci.sections(config, 'routing_node', function(s) {
+		if (s['.name'] === section_id) {
+			groupLabel = s.label || section_id;
+			selectedNodes = (s.urltest_nodes || []).slice();
+		}
+	});
+
+    /* ---------------------------
+     * 2. 判断是否选中
+     * --------------------------- */
+    function isChecked(id) {
+        for (let i = 0; i < selectedNodes.length; i++) {
+            if (selectedNodes[i] === id)
+                return true;
+        }
+        return false;
+    }
+
+    /* ---------------------------
+     * 3. 渲染列表
+     * --------------------------- */
+    function renderList(filter) {
+        let nodes = filter || allNodes;
+
+        listContainer.innerHTML = '';
+
+        for (let i = 0; i < nodes.length; i++) {
+            let node = nodes[i];
+
+            let cb = E('input', {
+                type: 'checkbox'
+            });
+
+            cb.checked = isChecked(node.id);
+
+            cb.onchange = function(ev) {
+                if (ev.target.checked) {
+                    if (!isChecked(node.id))
+                        selectedNodes.push(node.id);
+                } else {
+                    selectedNodes = selectedNodes.filter(x => x !== node.id);
+                }
+            };
+
+			listContainer.appendChild(
+                E('label', { style: 'display:block;padding:4px 0; padding-left:8px;' }, [
+                    cb,
+                    E('span', { style: 'margin-left:20px;' }, node.label)
+                ])
+            );
+        }
+    }
+
+    /* ---------------------------
+     * 4. 搜索框（关键修复）
+     * --------------------------- */
+    let searchBox = E('input', {
+        type: 'text',
+        class: 'cbi-input-text',
+        placeholder: _('Search nodes...')
+    });
+
+    function doSearch(ev) {
+        let val = (ev.target.value || '').toLowerCase();
+
+        let filtered = [];
+
+        for (let i = 0; i < allNodes.length; i++) {
+            let n = allNodes[i];
+
+            let label = (n.label || '').toLowerCase();
+            let id = (n.id || '').toLowerCase();
+
+            if (label.indexOf(val) !== -1 || id.indexOf(val) !== -1)
+                filtered.push(n);
+        }
+
+        renderList(filtered);
+    }
+
+    // LuCI 有些版本 input 不稳定，所以两个都绑
+    searchBox.oninput = doSearch;
+    searchBox.onkeyup = doSearch;
+
+    /* ---------------------------
+     * 5. 弹窗
+     * --------------------------- */
+	ui.showModal(_('Group Manager') + ' - ' + groupLabel,
+		E('div', {
+			style: 'max-width:800px;'
+		}, [
+			E('div', {}, [
+				searchBox,
+				(listContainer = E('div', {
+					class: 'node-list',
+					style: 'max-height:550px;overflow:auto'
+				}))
+			]),
+
+			/* -----------------------
+			* 6. 按钮
+			* ----------------------- */
+			E('div', { class: 'right' }, [
+
+				E('button', {
+					class: 'btn',
+					click: () => ui.hideModal()
+				}, _('Cancel')),
+
+				E('button', {
+					class: 'cbi-button cbi-button-positive important',
+					click: function() {
+
+						uci.set(config, section_id, 'urltest_nodes', selectedNodes);
+
+						return uci.save().then(function() {
+							return uci.apply();
+						}).then(function() {
+
+							ui.hideModal();
+
+							if (grid)
+								grid.render();
+						});
+					}
+				}, _('Save'))
+			])
+    ], 'cbi-modal'));
+    /* ---------------------------
+     * 7. 初始渲染
+     * --------------------------- */
+    renderList();
+}
+
+function buildNodeRegistry(data0) {
+
+    let registry = {
+        map: {},
+        display: {},  // 用于 UI 显示 label
+        groups: {},
+        list: []
+    };
+
+    // =====================
+    // 1️⃣ 收集普通节点 node
+    // =====================
+    uci.sections(data0, 'node', (n) => {
+
+        let addr = ((n.type === 'direct') ? n.override_address : n.address) || '';
+        let port = ((n.type === 'direct') ? n.override_port : n.port) || '';
+
+        let display = String.format(
+            '[%s] %s',
+            n.type,
+            n.label ||
+            ((stubValidator.apply('ip6addr', addr)
+                ? `[${addr}]`
+                : addr) + (port ? ':' + port : ''))
+        );
+
+        registry.map[n['.name']] = {
+            ...n,
+            addr,
+            port,
+            display
+        };
+
+        registry.display[n['.name']] = n.label || display; // 优先显示 label
+        registry.list.push(n['.name']);
+    });
+
+    // =====================
+    // 2️⃣ 收集 selector group
+    // =====================
+	uci.sections(data0, 'routing_node', (r) => {
+
+		if (r.node !== 'selector' && r.node !== 'urltest')
+			return;
+
+		let id = r['.name'];
+
+		let nodes = r.urltest_nodes || [];
+
+		registry.groups[id] = {
+			type: r.node,
+			label: r.label,
+			nodes
+		};
+
+		registry.display[id] = r.label || id;
+	});
+
+    return registry;
+}
+
+function openOutboundManager(section_id, nodeList, displayMap) {
+    // 获取当前默认 outbound（这里存的是 id）
+    let defaultOutbound = uci.get('homeproxy', section_id, 'default_outbound');
+
+    ui.showModal(_('Node Manager'), E('div', { style: 'padding:16px; min-width:300px;' }, [
+
+        E('p', _('Select a node for this group:')),
+
+        // 下拉选择
+        E('select', { id: 'node-selector', style: 'width:100%; margin-bottom:12px;' },
+            nodeList.map(id => E('option', {
+                value: id,
+                selected: (id === defaultOutbound) ? 'selected' : undefined
+            }, displayMap[id] || id))
+        ),
+
+        // 确认按钮
+        E('button', {
+            class: 'cbi-button cbi-button-action',
+            click: function() {
+                let select = document.getElementById('node-selector');
+                let value = select.value; // 这里是 id
+                let label = select.options[select.selectedIndex].text; // 这里是显示文本
+
+                console.log('selected id =', value);
+                console.log('selected label =', label);
+
+                // 保存默认 outbound，存 id 最安全
+                uci.set('homeproxy', section_id, 'default_outbound', label);
+
+                ui.hideModal(); // 关闭弹窗
+            }
+        }, _('OK'))
+
+    ]));
+}
 
 function getServiceStatus() {
 	return L.resolveDefault(callServiceList('homeproxy'), {}).then((res) => {
@@ -73,13 +342,14 @@ let stubValidator = {
 };
 
 return view.extend({
+
 	load() {
-		return Promise.all([
-			uci.load('homeproxy'),
-			hp.getBuiltinFeatures(),
-			network.getHostHints()
-		]);
-	},
+			return Promise.all([
+				uci.load('homeproxy'),
+				hp.getBuiltinFeatures(),
+				network.getHostHints()
+			]);
+		},
 
 	render(data) {
 		let m, s, o, ss, so;
@@ -87,20 +357,16 @@ return view.extend({
 		let features = data[1],
 		    hosts = data[2]?.hosts;
 
-		/* Cache all configured proxy nodes, they will be called multiple times */
-		let proxy_nodes = {};
-		uci.sections(data[0], 'node', (res) => {
-			let nodeaddr = ((res.type === 'direct') ? res.override_address : res.address) || '',
-			    nodeport = ((res.type === 'direct') ? res.override_port : res.port) || '';
 
-			proxy_nodes[res['.name']] =
-				String.format('[%s] %s', res.type, res.label || ((stubValidator.apply('ip6addr', nodeaddr) ?
-					String.format('[%s]', nodeaddr) : nodeaddr) + ':' + nodeport));
-		});
+		// 创建 HomeProxy Map
+		m = new form.Map('homeproxy',
+			_('HomeProxy'),
+			_('The modern ImmortalWrt proxy platform for ARM64/AMD64.')
+		);
 
-		m = new form.Map('homeproxy', _('HomeProxy'),
-			_('The modern ImmortalWrt proxy platform for ARM64/AMD64.'));
-
+		// =======================
+		// 状态栏 Section
+		// =======================
 		s = m.section(form.TypedSection);
 		s.render = function () {
 			poll.add(function () {
@@ -114,24 +380,75 @@ return view.extend({
 					E('p', { id: 'service_status' }, _('Collecting data...'))
 			]);
 		}
+		
+		let dl = m.section(form.TypedSection);
+
+		dl.render = function () {
+
+			return E('div', { class: 'cbi-section' }, [
+				E('button', {
+					id: 'download_config_btn',
+					class: 'cbi-button cbi-button-action'
+				}, _('Download runtime json file'))
+			]);
+		};
+		poll.add(function () {
+
+			let btn = document.getElementById('download_config_btn');
+			if (!btn || btn.dataset.bound) return;
+
+			btn.dataset.bound = "1";
+
+			btn.onclick = function () {
+
+				L.require('fs').then(fs => {
+
+					fs.read('/var/run/homeproxy/sing-box-c.json')
+						.then(content => {
+
+							let blob = new Blob([content], { type: 'application/json' });
+							let url = URL.createObjectURL(blob);
+
+							let a = document.createElement('a');
+							a.href = url;
+							a.download = 'sing-box-c.json';
+							a.click();
+
+							URL.revokeObjectURL(url);
+						})
+						.catch(err => {
+							console.log(err);
+							alert(_('Program not running, cannot download configuration!'));
+						});
+				});
+			};
+		});
+		// =======================
 
 		s = m.section(form.NamedSection, 'config', 'homeproxy');
 
+		/* Cache all configured proxy nodes, they will be called multiple times */
+		let registry = buildNodeRegistry(data[0]);
+		
 		s.tab('routing', _('Routing Settings'));
 
 		o = s.taboption('routing', form.ListValue, 'main_node', _('Main node'));
 		o.value('nil', _('Disable'));
 		o.value('urltest', _('URLTest'));
-		for (let i in proxy_nodes)
-			o.value(i, proxy_nodes[i]);
+		// 遍历所有 node 并填充下拉
+		registry.list.forEach((id) => {
+			o.value(id, registry.display[id]);
+		});
 		o.default = 'nil';
 		o.depends({'routing_mode': 'custom', '!reverse': true});
 		o.rmempty = false;
 
 		o = s.taboption('routing', hp.CBIStaticList, 'main_urltest_nodes', _('URLTest nodes'),
 			_('List of nodes to test.'));
-		for (let i in proxy_nodes)
-			o.value(i, proxy_nodes[i]);
+		// 遍历所有 node 并填充下拉
+		registry.list.forEach((id) => {
+			o.value(id, registry.display[id]);
+		});
 		o.depends('main_node', 'urltest');
 		o.rmempty = false;
 
@@ -151,16 +468,20 @@ return view.extend({
 		o.value('nil', _('Disable'));
 		o.value('same', _('Same as main node'));
 		o.value('urltest', _('URLTest'));
-		for (let i in proxy_nodes)
-			o.value(i, proxy_nodes[i]);
+		// 遍历所有 node 并填充下拉
+		registry.list.forEach((id) => {
+			o.value(id, registry.display[id]);
+		});
 		o.default = 'nil';
 		o.depends({'routing_mode': /^((?!custom).)+$/, 'proxy_mode': /^((?!redirect$).)+$/});
 		o.rmempty = false;
 
 		o = s.taboption('routing', hp.CBIStaticList, 'main_udp_urltest_nodes', _('URLTest nodes'),
 			_('List of nodes to test.'));
-		for (let i in proxy_nodes)
-			o.value(i, proxy_nodes[i]);
+		// 遍历所有 node 并填充下拉
+		registry.list.forEach((id) => {
+			o.value(id, registry.display[id]);
+		});
 		o.depends('main_udp_node', 'urltest');
 		o.rmempty = false;
 
@@ -304,6 +625,10 @@ return view.extend({
 		o.depends('routing_mode', 'custom');
 
 		ss = o.subsection;
+		so = ss.option(form.Flag, 'bypass_cn_traffic', _('Bypass CN traffic'),
+			_('Bypass mainland China traffic via firewall rules by default.'));
+		so.rmempty = false;
+
 		so = ss.option(form.ListValue, 'tcpip_stack', _('TCP/IP stack'),
 			_('TCP/IP stack.'));
 		if (features.with_gvisor) {
@@ -340,60 +665,21 @@ return view.extend({
 		so.depends('homeproxy.config.proxy_mode', 'redirect_tun');
 		so.depends('homeproxy.config.proxy_mode', 'tun');
 
-		so = ss.option(form.Flag, 'bypass_cn_traffic', _('Bypass CN traffic'),
-			_('Bypass mainland China traffic via firewall rules by default.'));
-		so.rmempty = false;
-
-		so = ss.option(form.ListValue, 'domain_strategy', _('Domain strategy'),
-			_('If set, the requested domain name will be resolved to IP before routing.'));
-		for (let i in hp.dns_strategy)
-			so.value(i, hp.dns_strategy[i]);
-
 		so = ss.option(form.Flag, 'sniff_override', _('Override destination'),
 			_('Override the connection destination address with the sniffed domain.'));
 		so.default = so.enabled;
 		so.rmempty = false;
 
-		so = ss.option(form.ListValue, 'default_outbound', _('Default outbound'),
-			_('Default outbound for connections not matched by any routing rules.'));
-		so.load = function(section_id) {
-			delete this.keylist;
-			delete this.vallist;
-
-			this.value('nil', _('Disable (the service)'));
-			this.value('direct-out', _('Direct'));
-			this.value('block-out', _('Block'));
-			uci.sections(data[0], 'routing_node', (res) => {
-				if (res.enabled === '1')
-					this.value(res['.name'], res.label);
-			});
-
-			return this.super('load', section_id);
-		}
-		so.default = 'nil';
-		so.rmempty = false;
-
-		so = ss.option(form.ListValue, 'default_outbound_dns', _('Default outbound DNS'),
-			_('Default DNS server for resolving domain name in the server address.'));
-		so.load = function(section_id) {
-			delete this.keylist;
-			delete this.vallist;
-
-			this.value('default-dns', _('Default DNS (issued by WAN)'));
-			this.value('system-dns', _('System DNS'));
-			uci.sections(data[0], 'dns_server', (res) => {
-				if (res.enabled === '1')
-					this.value(res['.name'], res.label);
-			});
-
-			return this.super('load', section_id);
-		}
-		so.default = 'default-dns';
-		so.rmempty = false;
+		so = ss.option(form.Flag, 'autoroute', _('Auto Route'),
+			_('Auto Route fot TUN mode.'));
+		so.depends('homeproxy.config.proxy_mode', 'redirect_tun');
+		so.depends('homeproxy.config.proxy_mode', 'tun');
+		
 		/* Routing settings end */
 
 		/* Routing nodes start */
 		s.tab('routing_node', _('Routing Nodes'));
+		// routing_node 表格
 		o = s.taboption('routing_node', form.SectionValue, '_routing_node', form.GridSection, 'routing_node');
 		o.depends('routing_mode', 'custom');
 
@@ -406,6 +692,65 @@ return view.extend({
 		ss.sectiontitle = L.bind(hp.loadDefaultLabel, this, data[0]);
 		ss.renderSectionAdd = L.bind(hp.renderSectionAdd, this, ss);
 
+		ss.renderRowActions = function(section_id) {
+			
+			let nodeType = uci.get(data[0], section_id, 'node');
+			let isUrltest = (nodeType === 'urltest');			
+			
+			// 调用父方法渲染 Edit 按钮
+			let tdEl = form.GridSection.prototype.renderRowActions.call(
+				this,
+				section_id,
+				_('Edit')
+			);
+
+			let btns = tdEl.querySelector('div');
+
+			// ⭐ Group Manager
+			btns.insertBefore(
+				E('button', {
+					'class': 'cbi-button cbi-button-action',
+					click: ui.createHandlerFn(this, function() {
+						console.log('section_id=', section_id);
+						openNodeManager(section_id, this.map);
+					})
+				}, _('Group Members')),
+				btns.firstChild
+			);
+
+			// ⭐ Outbound Manager
+			btns.insertBefore(
+				E('button', {
+					'class': 'cbi-button cbi-button-action',
+					'disabled': isUrltest ? true : null,
+					'style': isUrltest ? 'opacity:0.5; pointer-events:none;' : '',
+					click: ui.createHandlerFn(this, function() {
+
+						let nodeList = [];
+
+						uci.sections(data[0], 'routing_node', (r) => {
+							if (r['.name'] !== section_id)
+								return;
+
+							nodeList = r.urltest_nodes || [];
+
+							if (!Array.isArray(nodeList))
+								nodeList = [nodeList];
+						});
+
+						openOutboundManager(
+							section_id,
+							nodeList,
+							registry.display
+						);
+					})
+				}, _('Default Outbound')),
+				btns.firstChild
+			);
+
+			return tdEl;
+		};
+
 		so = ss.option(form.Value, 'label', _('Label'));
 		so.load = L.bind(hp.loadDefaultLabel, this, data[0]);
 		so.validate = L.bind(hp.validateUniqueValue, this, data[0], 'routing_node', 'label');
@@ -416,13 +761,6 @@ return view.extend({
 		so.rmempty = false;
 		so.editable = true;
 
-		so = ss.option(form.ListValue, 'node', _('Node'),
-			_('Outbound node'));
-		so.value('urltest', _('URLTest'));
-		for (let i in proxy_nodes)
-			so.value(i, proxy_nodes[i]);
-		so.validate = L.bind(hp.validateUniqueValue, this, data[0], 'routing_node', 'node');
-		so.editable = true;
 
 		so = ss.option(form.ListValue, 'domain_resolver', _('Domain resolver'),
 			_('For resolving domain name in the server address.'));
@@ -440,25 +778,31 @@ return view.extend({
 
 			return this.super('load', section_id);
 		}
-		so.depends({'node': 'urltest', '!reverse': true});
+		so.depends('node', function(value) {
+			return value !== 'urltest' && value !== 'selector';
+		});
 		so.modalonly = true;
 
 		so = ss.option(form.ListValue, 'domain_strategy', _('Domain strategy'),
 			_('The domain strategy for resolving the domain name in the address.'));
 		for (let i in hp.dns_strategy)
 			so.value(i, hp.dns_strategy[i]);
-		so.depends({'node': 'urltest', '!reverse': true});
+		so.depends('node', function(value) {
+			return value !== 'urltest' && value !== 'selector';
+		});
 		so.modalonly = true;
 
 		so = ss.option(widgets.DeviceSelect, 'bind_interface', _('Bind interface'),
 			_('The network interface to bind to.'));
 		so.multiple = false;
 		so.noaliases = true;
-		so.depends({'outbound': '', 'node': /^((?!urltest$).)+$/});
+		so.depends('node', function(value) {
+			return value !== 'urltest' && value !== 'selector';
+		});
 		so.modalonly = true;
 
 		so = ss.option(form.ListValue, 'outbound', _('Outbound'),
-			_('The tag of the upstream outbound.<br/>Other dial fields will be ignored when enabled.'));
+			_('The selection will leave the Group with the sole node only.'));
 		so.load = function(section_id) {
 			delete this.keylist;
 			delete this.vallist;
@@ -490,21 +834,37 @@ return view.extend({
 
 			return true;
 		}
-		so.depends({'node': 'urltest', '!reverse': true});
 		so.editable = true;
+		so.modalonly = true;
+
+		so = ss.option(form.ListValue, 'node', _('Group Type'),
+			_('Select Group Type.'));
+
+		so.value('urltest', _('URLTest'));
+		so.value('selector', _('Selector'));
+		so.width = '150px'
+		so.rmempty = false;
+		so.editable = true;
+
+		so.load = function(section_id) {
+			return uci.get(data[0], section_id, 'node') || 'urltest';
+		};
 
 		so = ss.option(hp.CBIStaticList, 'urltest_nodes', _('URLTest nodes'),
 			_('List of nodes to test.'));
-		for (let i in proxy_nodes)
-			so.value(i, proxy_nodes[i]);
+		// 遍历所有 node 并填充下拉
+		registry.list.forEach((id) => {
+			so.value(id, registry.display[id]);
+		});
 		so.depends('node', 'urltest');
+		so.depends('node', 'selector');
 		so.validate = function(section_id) {
 			let value = this.section.formvalue(section_id, 'urltest_nodes');
 			if (section_id && !value.length)
 				return _('Expecting: %s').format(_('non-empty value'));
 
 			return true;
-		}
+		}		
 		so.modalonly = true;
 
 		so = ss.option(form.Value, 'urltest_url', _('Test URL'),
@@ -559,10 +919,12 @@ return view.extend({
 
 		so = ss.option(form.Flag, 'urltest_interrupt_exist_connections', _('Interrupt existing connections'),
 			_('Interrupt existing connections when the selected outbound has changed.'));
+		so.editable = true;
 		so.depends('node', 'urltest');
-		so.modalonly = true;
+		so.depends('node', 'selector');
 		/* Routing nodes end */
 
+		
 		/* Routing rules start */
 		s.tab('routing_rule', _('Routing Rules'));
 		o = s.taboption('routing_rule', form.SectionValue, '_routing_rule', form.GridSection, 'routing_rule');
@@ -591,16 +953,6 @@ return view.extend({
 		so.default = so.enabled;
 		so.rmempty = false;
 		so.editable = true;
-
-		so = ss.taboption('field_other', form.ListValue, 'clash_mode', _('Clash Mode'));
-		so.value('', _('-- Please choose --'));
-		so.value('direct', _('Direct'));
-		so.value('rule', _('Rule'));
-		so.value('global', _('Global'));
-		so.value('script', _('Script'));
-		so.default = '';
-		so.rmempty = false;
-		so.modalonly = true;
 		
 		so = ss.taboption('field_other', form.ListValue, 'mode', _('Mode'),
 			_('The default rule uses the following matching logic:<br/>' +
@@ -681,6 +1033,7 @@ return view.extend({
 		so.value('route-options', _('Route options'));
 		so.value('reject', _('Reject'));
 		so.value('resolve', _('Resolve'));
+		so.value('', _('none'));
 		so.default = 'route';
 		so.rmempty = false;
 		so.editable = true;
@@ -878,12 +1231,84 @@ return view.extend({
 		so.modalonly = true;
 		/* Routing rules end */
 
+		/* Route settings start */
+		s.tab('route_setting', _('Route Settings'));
+		o = s.taboption('route_setting', form.SectionValue, '_route_setting', form.NamedSection, 'route_setting', 'homeproxy');
+
+		ss = o.subsection;
+		// resolve
+		so = ss.option(form.Flag, 'resolve', _('Resolve the domains in Route Rules'),
+			_('Enable to resolve the domain so as to apply IP rule set.'));
+
+		so.default = so.disabled;
+		so.rmempty = false;
+
+		// domain_strategy
+		so = ss.option(form.ListValue, 'domain_strategy', _('Domain strategy'),
+			_('If set, the requested domain name will be resolved to IP before routing.'));
+		for (let i in hp.dns_strategy)
+			so.value(i, hp.dns_strategy[i]);
+		so.depends('resolve', '1');
+
+		// routing_rule select
+		so = ss.option(form.ListValue, 'route_rule_select', _('Route Rule'));
+		so.value('', _('Default'));
+
+		uci.sections('homeproxy', 'routing_rule', function(s) {
+			so.value(s['.name'], s.label || s['.name']);
+		});
+
+		so.depends('resolve', '1');
+
+
+		so = ss.option(form.ListValue, 'default_outbound', _('Default outbound'),
+			_('Default outbound for connections not matched by any routing rules.'));
+		so.load = function(section_id) {
+			delete this.keylist;
+			delete this.vallist;
+
+			this.value('nil', _('Disable (the service)'));
+			this.value('direct-out', _('Direct'));
+			this.value('block-out', _('Block'));
+			uci.sections(data[0], 'routing_node', (res) => {
+				if (res.enabled === '1')
+					this.value(res['.name'], res.label);
+			});
+
+			return this.super('load', section_id);
+		}
+		so.default = 'nil';
+		so.rmempty = false;
+
+		so = ss.option(form.ListValue, 'default_outbound_dns', _('Default outbound DNS'),
+			_('Default DNS server for resolving domain name in the server address.'));
+		so.load = function(section_id) {
+			delete this.keylist;
+			delete this.vallist;
+
+			this.value('default-dns', _('Default DNS (issued by WAN)'));
+			this.value('system-dns', _('System DNS'));
+			uci.sections(data[0], 'dns_server', (res) => {
+				if (res.enabled === '1')
+					this.value(res['.name'], res.label);
+			});
+
+			return this.super('load', section_id);
+		}
+		so.default = 'default-dns';
+		so.rmempty = false;
+		
+		/* Route settings end */
+		
 		/* DNS settings start */
 		s.tab('dns', _('DNS Settings'));
 		o = s.taboption('dns', form.SectionValue, '_dns', form.NamedSection, 'dns', 'homeproxy');
 		o.depends('routing_mode', 'custom');
 
 		ss = o.subsection;
+		so = ss.option(form.Flag, 'fakeip', _('Enable FAKEIP'), _('Please disable the DNS Severs which you donnot want to filter(to resolved as real IP.)'));
+		so.editable = true;
+
 		so = ss.option(form.ListValue, 'default_strategy', _('Default DNS strategy'),
 			_('The DNS strategy for resolving the domain name in the address.'));
 		for (let i in hp.dns_strategy)
@@ -1036,10 +1461,11 @@ return view.extend({
 
 		so = ss.option(form.ListValue, 'outbound', _('Outbound'),
 			_('Tag of an outbound for connecting to the dns server.'));
-		so.load = function(section_id) {
+			so.load = function(section_id) {
 			delete this.keylist;
 			delete this.vallist;
 
+			this.value('', _('-none-'));
 			this.value('direct-out', _('Direct'));
 			uci.sections(data[0], 'routing_node', (res) => {
 				if (res.enabled === '1')
@@ -1048,8 +1474,6 @@ return view.extend({
 
 			return this.super('load', section_id);
 		}
-		so.default = 'direct-out';
-		so.rmempty = false;
 		so.editable = true;
 		/* DNS servers end */
 
@@ -1082,16 +1506,6 @@ return view.extend({
 		so.rmempty = false;
 		so.editable = true;
 
-		so = ss.taboption('field_other', form.ListValue, 'clash_mode', _('Clash Mode'));
-		so.value('', _('-- Please choose --'));
-		so.value('direct', _('Direct'));
-		so.value('rule', _('Rule'));
-		so.value('global', _('Global'));
-		so.value('script', _('Script'));
-		so.default = '';
-		so.rmempty = false;
-		so.modalonly = true;
-		
 		so = ss.taboption('field_other', form.ListValue, 'mode', _('Mode'),
 			_('The default rule uses the following matching logic:<br/>' +
 			'<code>(domain || domain_suffix || domain_keyword || domain_regex)</code> &&<br/>' +
@@ -1417,13 +1831,43 @@ return view.extend({
 
 		/* clash_api settings start */
 		s.tab('clash_api', _('Clash API'));
-		o = s.taboption('clash_api', form.SectionValue, '_experimental', form.NamedSection, 'homeproxy', 'experimental');
+		o = s.taboption('clash_api', form.SectionValue, '_experimental', form.NamedSection, 'experimental', 'homeproxy');
 		o.depends('routing_mode', 'custom');
 
 		ss = o.subsection;
 		so = ss.option(form.Flag, 'enable_clash_api', _('Enable Clash API'));
 		so.default = so.disabled;
 
+		// Open Dashboard 链接
+		o = ss.option(form.DummyValue, '_open_dashboard', _('Open Dashboard'));
+		o.rawhtml = true;
+		o.depends('enable_clash_api', '1');
+		o.cfgvalue = function () {
+			let controller = null;
+			let secret = null;
+
+			// 读取 experimental section 下的字段
+			controller = L.uci.get('homeproxy', 'experimental', 'external_controller');
+			secret = L.uci.get('homeproxy', 'experimental', 'secret');
+
+			if (!controller)
+				return '<em>Not set</em>';
+
+			const host = controller.replace('0.0.0.0', location.hostname);
+
+			const url =
+				'http://' + host +
+				'/ui/?secret=' + encodeURIComponent(secret) +
+				'#/proxies';
+
+			return `
+				<a href="${url}"
+				target="_blank"
+				rel="noopener noreferrer">
+				👉 Open Dashboard
+				</a>
+			`;
+		};		
 
 		so = ss.option(form.Value, 'external_controller', _('External Controller'),
 			_('RESTful web API listening address'));
@@ -1449,10 +1893,9 @@ return view.extend({
 		so.load = function (section_id) {
 			delete this.keylist;
 			delete this.vallist;
-
 			this.value('direct-out', _('Direct'));
-			this.value('block-out', _('Block'));
-			uci.sections(data[0], 'node', (res) => {
+
+			uci.sections(data[0], 'routing_node', (res) => {
 				this.value(res.label, res.label);
 			});
 
@@ -1466,8 +1909,56 @@ return view.extend({
 		so.value('direct', 'Direct');
 		so.value('rule', 'Rule');
 		so.value('global', 'Global');
-		so.value('script', 'Script');
 		so.depends('enable_clash_api', '1');
+
+		so = ss.option(form.ListValue, 'direct_dns', _('Clash Mode DIRECT DNS'),
+			_('Direct DNS for Clash Mode.'));
+		so.load = function (section_id) {
+			delete this.keylist;
+			delete this.vallist;
+
+			uci.sections(data[0], 'dns_server', (res) => {
+				this.value(res.label, res.label);
+			});
+			return this.super('load', section_id);
+		}
+		so.depends('enable_clash_api', '1');
+
+		so = ss.option(form.ListValue, 'global_dns', _('Clash Mode GLOBAL DNS'),
+			_('Global DNS for Clash Mode.'));
+		so.load = function (section_id) {
+			delete this.keylist;
+			delete this.vallist;
+
+			uci.sections(data[0], 'dns_server', (res) => {
+				this.value(res.label, res.label);
+			});
+			return this.super('load', section_id);
+		}
+		so.depends('enable_clash_api', '1');
+
+		so = ss.option(form.ListValue, 'direct_outbound', _('Clash Mode DIRECT Outbound'),
+			_('Direct outbound for Clash Mode.'));
+		so.load = function (section_id) {
+			delete this.keylist;
+			delete this.vallist;
+			this.value('direct-out', _('Direct'));
+			return this.super('load', section_id);
+		}
+		so.depends('enable_clash_api', '1');
+		so.readonly = true;
+
+		so = ss.option(form.ListValue, 'global_outbound', _('Clash Mode GLOBAL Outbound'),
+			_('Global outbound for Clash Mode.'));
+		so.load = function (section_id) {
+			delete this.keylist;
+			delete this.vallist;
+			
+			this.value('Global', _('GLOBAL'));
+			return this.super('load', section_id);
+		}
+		so.depends('enable_clash_api', '1');
+		so.readonly = true;
 		/* clash_api settings end */
 		
 		/* ACL settings start */
