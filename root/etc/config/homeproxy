@@ -79,3 +79,4 @@ config homeproxy 'server'
 config homeproxy 'experimental'
 	option enable_clash_api '0'
 
+config homeproxy 'route_setting'
