@@ -302,19 +302,20 @@ return baseclass.extend({
 
 	validateUniqueValue(uciconfig, ucisection, ucioption, section_id, value) {
 		if (section_id) {
-			if (!value)
-				return _('Expecting: %s').format(_('non-empty value'));
-			if (ucioption === 'node' && value === 'urltest')
-				return true;
+			if (!value) return _('Expecting: %s').format(_('non-empty value'));
 
+			// 特殊值直接通过
+			if ((ucioption === 'node' || ucioption === 'selector') &&
+				['urltest', 'selector'].includes(value)) return true;
+
+			// 检查重复，排除自己
 			let duplicate = false;
 			uci.sections(uciconfig, ucisection, (res) => {
-				if (res['.name'] !== section_id)
-					if (res[ucioption] === value)
-						duplicate = true
+				if (res['.name'] !== section_id && res[ucioption] === value)
+					duplicate = true;
 			});
-			if (duplicate)
-				return _('Expecting: %s').format(_('unique value'));
+
+			if (duplicate) return _('Expecting: %s').format(_('unique value'));
 		}
 
 		return true;
