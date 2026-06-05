@@ -37,7 +37,9 @@ const ucidnssetting = 'dns',
 
 const uciroutingsetting = 'routing',
       uciroutingnode = 'routing_node',
-      uciroutingrule = 'routing_rule';
+      uciroutingrule = 'routing_rule',
+	  uciroutesetting = 'route_setting';
+
 
 const ucinode = 'node';
 const uciruleset = 'ruleset';
@@ -54,19 +56,25 @@ const ntp_server = uci.get(uciconfig, uciinfra, 'ntp_server') || 'time.apple.com
 
 const ipv6_support = uci.get(uciconfig, ucimain, 'ipv6_support') || '0';
 
-const enable_clash_api = uci.get(uciconfig, 'config', 'enable_clash_api') || '0';
-const external_controller = uci.get(uciconfig, 'config', 'external_controller') || '0.0.0.0:9090';
-const external_ui = uci.get(uciconfig, 'config', 'external_ui');
-const external_ui_download_url = uci.get(uciconfig, 'config', 'external_ui_download_url');
-const external_ui_download_detour = uci.get(uciconfig, 'config', 'external_ui_download_detour');
-const secret = uci.get(uciconfig, 'config', 'secret');
-const default_mode = uci.get(uciconfig, 'config', 'default_mode');
+const enable_clash_api = uci.get(uciconfig, 'experimental', 'enable_clash_api') || '0';
+const external_controller = uci.get(uciconfig, 'experimental', 'external_controller');
+const external_ui = uci.get(uciconfig, 'experimental', 'external_ui');
+const external_ui_download_url = uci.get(uciconfig, 'experimental', 'external_ui_download_url');
+const external_ui_download_detour = uci.get(uciconfig, 'experimental', 'external_ui_download_detour');
+const secret = uci.get(uciconfig, 'experimental', 'secret');
+const default_mode = uci.get(uciconfig, 'experimental', 'default_mode');
 
-let main_node, main_udp_node, dedicated_udp_node, default_outbound, default_outbound_dns,
-    domain_strategy, sniff_override, dns_server, china_dns_server, dns_default_strategy,
+const global_outbound = uci.get(uciconfig, 'experimental', 'global_outbound');
+const direct_outbound = uci.get(uciconfig, 'experimental', 'direct_outbound');
+const global_dns = uci.get(uciconfig, 'experimental', 'global_dns');
+const direct_dns = uci.get(uciconfig, 'experimental', 'direct_dns');
+const autoroute = uci.get(uciconfig, uciroutingsetting, 'autoroute');
+
+let main_node, main_udp_node, dedicated_udp_node,
+    sniff_override, dns_server, china_dns_server, dns_default_strategy,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
     dns_client_subnet, cache_file_store_rdrc, cache_file_rdrc_timeout, direct_domain_list,
-    proxy_domain_list;
+    proxy_domain_list, enable_fakeip, resolve, route_rule_select, default_outbound, default_outbound_dns, domain_strategy;
 
 if (routing_mode !== 'custom') {
 	main_node = uci.get(uciconfig, ucimain, 'main_node') || 'nil';
@@ -105,10 +113,13 @@ if (routing_mode !== 'custom') {
 	cache_file_rdrc_timeout = uci.get(uciconfig, ucidnssetting, 'cache_file_rdrc_timeout');
 
 	/* Routing settings */
-	default_outbound = uci.get(uciconfig, uciroutingsetting, 'default_outbound') || 'nil';
-	default_outbound_dns = uci.get(uciconfig, uciroutingsetting, 'default_outbound_dns') || 'default-dns';
-	domain_strategy = uci.get(uciconfig, uciroutingsetting, 'domain_strategy');
 	sniff_override = uci.get(uciconfig, uciroutingsetting, 'sniff_override');
+	enable_fakeip = uci.get(uciconfig, ucidnssetting, 'fakeip');
+	resolve = uci.get(uciconfig, uciroutesetting, 'resolve');
+	route_rule_select = uci.get(uciconfig, uciroutesetting, 'route_rule_select');
+	default_outbound = uci.get(uciconfig, uciroutesetting, 'default_outbound') || 'nil';
+	default_outbound_dns = uci.get(uciconfig, uciroutesetting, 'default_outbound_dns') || 'default-dns';
+	domain_strategy = uci.get(uciconfig, uciroutesetting, 'domain_strategy');
 }
 
 const proxy_mode = uci.get(uciconfig, ucimain, 'proxy_mode') || 'redirect_tproxy',
@@ -227,7 +238,7 @@ function generate_outbound(node) {
 
 	const outbound = {
 		type: node.type,
-		tag: 'cfg-' + node['.name'] + '-out',
+		tag: node.label,
 		routing_mark: strToInt(self_mark),
 
 		server: node.address,
@@ -369,13 +380,13 @@ function get_outbound(cfg) {
 		case 'direct-out':
 			return cfg;
 		default:
-			const node = uci.get(uciconfig, cfg, 'node');
+			const node = uci.get(uciconfig, cfg, 'label');
 			if (isEmpty(node))
 				die(sprintf("%s's node is missing, please check your configuration.", cfg));
-			else if (node === 'urltest')
-				return 'cfg-' + cfg + '-out';
+			else if (node === 'urltest' || node === 'selector')
+				return cfg;
 			else
-				return 'cfg-' + node + '-out';
+				return node;
 		}
 	}
 }
@@ -385,11 +396,10 @@ function get_resolver(cfg) {
 		return null;
 
 	switch (cfg) {
-	case 'default-dns':
 	case 'system-dns':
 		return cfg;
 	default:
-		return 'cfg-' + cfg + '-dns';
+		return cfg;
 	}
 }
 
@@ -527,7 +537,7 @@ if (!isEmpty(main_node)) {
 			outbound = null;
 
 		push(config.dns.servers, {
-			tag: 'cfg-' + cfg['.name'] + '-dns',
+			tag: cfg.label,
 			type: cfg.type,
 			server: cfg.server,
 			server_port: strToInt(cfg.server_port),
@@ -544,8 +554,25 @@ if (!isEmpty(main_node)) {
 			detour: outbound
 		});
 	});
+	if (enable_fakeip === '1')
+		push(config.dns.servers,{
+		tag: 'fakeip',
+		type: 'fakeip',
+		inet4_range: '198.18.0.0/15',
+		inet6_range: 'fc00::/18'
+		});
 
 	/* DNS rules */
+		if (enable_clash_api === '1') {
+		push(config.dns.rules, {
+			clash_mode: 'direct',
+			server: direct_dns
+		});
+		push(config.dns.rules, {
+		clash_mode: 'global',
+		server: global_dns
+		});
+		} 
 	uci.foreach(uciconfig, ucidnsrule, (cfg) => {
 		if (cfg.enabled !== '1')
 			return;
@@ -589,7 +616,13 @@ if (!isEmpty(main_node)) {
 			extra: cfg.predefined_extra
 		});
 	});
-
+	if (enable_fakeip === '1'){
+		push(config.dns.rules, {
+			query_type: ['A', 'AAAA'],
+			server: 'fakeip',
+			rewrite_ttl: 1
+		});	
+	}
 	if (isEmpty(config.dns.rules))
 		config.dns.rules = null;
 
@@ -648,7 +681,7 @@ if (match(proxy_mode, /tun/))
 		interface_name: tun_name,
 		address: (ipv6_support === '1') ? [tun_addr4, tun_addr6] : [tun_addr4],
 		mtu: strToInt(tun_mtu),
-		auto_route: false,
+		auto_route: (autoroute === '1') ? true : false,
 		endpoint_independent_nat: strToBool(endpoint_independent_nat),
 		udp_timeout: strToTime(udp_timeout),
 		stack: tcpip_stack,
@@ -745,18 +778,34 @@ if (!isEmpty(main_node)) {
 		if (cfg.enabled !== '1')
 			return;
 
-		if (cfg.node === 'urltest') {
+		if (cfg.node === 'urltest' || cfg.node === 'selector') {
+
+			let outbound_type = cfg.node;
+
 			push(config.outbounds, {
-				type: 'urltest',
-				tag: 'cfg-' + cfg['.name'] + '-out',
-				outbounds: map(cfg.urltest_nodes, (k) => `cfg-${k}-out`),
-				url: cfg.urltest_url,
-				interval: strToTime(cfg.urltest_interval),
-				tolerance: strToInt(cfg.urltest_tolerance),
-				idle_timeout: strToTime(cfg.urltest_idle_timeout),
-				interrupt_exist_connections: strToBool(cfg.urltest_interrupt_exist_connections)
+				type: outbound_type,
+				tag: cfg.label,
+				outbounds: map(cfg.urltest_nodes, (k) =>
+					isEmpty(uci.get(uciconfig, k, 'label'))
+						? k
+						: uci.get(uciconfig, k, 'label')
+				),
+
+				/* urltest 专属 */
+				url: (outbound_type === 'urltest') ? cfg.urltest_url : null,
+				interval: (outbound_type === 'urltest') ? strToTime(cfg.urltest_interval) : null,
+				tolerance: (outbound_type === 'urltest') ? strToInt(cfg.urltest_tolerance) : null,
+				idle_timeout: (outbound_type === 'urltest') ? strToTime(cfg.urltest_idle_timeout) : null,
+				interrupt_exist_connections:
+					(outbound_type === 'urltest')
+						? strToBool(cfg.urltest_interrupt_exist_connections)
+						: null,
+
+				/* selector 专属 */
+				default: (cfg.default_outbound) ? cfg.default_outbound : null
+
 			});
-			urltest_nodes = [...urltest_nodes, ...filter(cfg.urltest_nodes, (l) => !~index(urltest_nodes, l))];
+
 		} else {
 			const outbound = uci.get_all(uciconfig, cfg.node) || {};
 			if (outbound.type === 'wireguard') {
@@ -781,14 +830,15 @@ if (!isEmpty(main_node)) {
 			push(routing_nodes, cfg.node);
 		}
 	});
+	uci.foreach(uciconfig, ucinode, (cfg) => {
+		if (cfg.type === 'wireguard') {
+			push(config.endpoints, generate_endpoint(cfg));
+		} else {
+			push(config.outbounds, generate_outbound(cfg));
+		}
+	});
 
-	for (let i in filter(urltest_nodes, (l) => !~index(routing_nodes, l))) {
-		const urltest_node = uci.get_all(uciconfig, i) || {};
-		if (urltest_node.type === 'wireguard')
-			push(config.endpoints, generate_endpoint(urltest_node));
-		else
-			push(config.outbounds, generate_outbound(urltest_node));
-	}
+
 }
 
 if (isEmpty(config.endpoints))
@@ -895,20 +945,24 @@ if (!isEmpty(main_node)) {
 		config.route.rule_set = null;
 } else if (!isEmpty(default_outbound)) {
 	config.route.default_domain_resolver = {
-		action: 'resolve',
 		server: get_resolver(default_outbound_dns)
 	};
 
-	if (domain_strategy)
+	if (enable_clash_api === '1')
 		push(config.route.rules, {
-			action: 'resolve',
-			strategy: domain_strategy
+			clash_mode: 'direct',
+			outbound: direct_outbound,
+		});
+		push(config.route.rules, {
+			clash_mode: 'global',
+			outbound: global_outbound,
 		});
 
 	uci.foreach(uciconfig, uciroutingrule, (cfg) => {
 		if (cfg.enabled !== '1')
 			return null;
 
+		// 当前规则
 		push(config.route.rules, {
 			ip_version: strToInt(cfg.ip_version),
 			protocol: cfg.protocol,
@@ -944,6 +998,19 @@ if (!isEmpty(main_node)) {
 			tls_fragment_fallback_delay: strToTime(cfg.tls_fragment_fallback_delay),
 			tls_record_fragment: strToBool(cfg.tls_record_fragment)
 		});
+
+		// 指定规则后插入 resolve
+		if (
+			resolve === '1' &&
+			route_rule_select &&
+			(route_rule_select === cfg['.name'] ||
+			route_rule_select === cfg.label)
+		){
+			push(config.route.rules, {
+				action: 'resolve',
+				strategy: domain_strategy || ''
+			});
+		}
 	});
 
 	config.route.final = get_outbound(default_outbound);
