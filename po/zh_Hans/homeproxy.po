@@ -3119,3 +3119,8 @@ msgstr "有效端口值"
 #: htdocs/luci-static/resources/homeproxy.js:328
 msgid "valid uuid"
 msgstr "有效 uuid"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:675
+msgid "Enable Auto Route"
+msgstr ""
+
