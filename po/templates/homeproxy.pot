@@ -3049,3 +3049,51 @@ msgstr ""
 #: htdocs/luci-static/resources/homeproxy.js:328
 msgid "valid uuid"
 msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:675
+msgid "Enable Auto Route"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:676
+msgid "Auto Route fot TUN mode."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1653
+msgid "Insert a rule of Domain Resolution"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1654
+msgid "With such a rule improves experience of QUIC connection."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1660
+msgid "Domain strategy of the inserted rule"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1661
+msgid "Default includes both IPV4 and IPV6."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1667
+msgid "The sequence of the inserted rule"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1668
+msgid "Select a routing rule as the front rule to insert."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1807
+msgid "Clash API"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1812
+msgid "Enable Clash API"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1854
+msgid "RESTful web API listening address"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1853
+msgid "External Controller"
+msgstr ""
