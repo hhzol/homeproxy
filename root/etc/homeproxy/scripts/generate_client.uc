@@ -808,7 +808,7 @@ if (!isEmpty(main_node)) {
 						: null,
 
 				/* selector 专属 */
-				default: (cfg.default_outbound && outbound_type === 'se') ? cfg.default_outbound : null
+				default: (cfg.default_outbound && outbound_type === 'selector') ? cfg.default_outbound : null
 
 			});
 
