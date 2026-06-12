@@ -3124,3 +3124,134 @@ msgstr "有效 uuid"
 msgid "Enable Auto Route"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/homeproxy/client.js:853
+msgid "Enable Auto Route"
+msgstr "启用自动路由"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:854
+msgid "Auto Route for TUN mode."
+msgstr "TUN模式 - 自动路由"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1907
+msgid "Insert a rule of Domain Resolution"
+msgstr "插入一条域名解析的规则"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1908
+msgid "With such a rule improves experience of QUIC connection."
+msgstr "该规则有利于提升QUIC连接的体验。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1914
+msgid "Domain strategy of the inserted rule"
+msgstr "插入规则的域名解析策略"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1915
+msgid "Default includes both IPV4 and IPV6."
+msgstr "默认将包含IPV和IPV6。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1921
+msgid "The sequence of the inserted rule"
+msgstr "插入规则的顺序"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1922
+msgid "Insert the rule in front of the Selected rule. Default will be the first rule."
+msgstr "在选择规则前插入该规则。默认插入第一条规则之前。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2066
+msgid "Clash API"
+msgstr "Clash面板"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2071
+msgid "Enable Clash API"
+msgstr "启用Clash面板"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2112
+msgid "External Controller"
+msgstr "外部控制"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2113
+msgid "RESTful web API listening address。"
+msgstr "监听地址。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2118
+msgid "Secret"
+msgstr "密码"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2119
+msgid "ALWAYS set a secret if RESTful API is listening on 0.0.0.0"
+msgstr "若监听地址为0.0.0.0请记得设置密码。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2122
+msgid "External UI Path"
+msgstr "控制面板UI路径"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2123
+msgid "An absolute path for the UI static web resource."
+msgstr "UI静态网页资源的绝对路径"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2127
+msgid "UI Download link"
+msgstr "UI下载链接"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2128
+msgid "SUGGEST: <code>https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip</code>."
+msgstr "建议: <code>https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip</code>."
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2132
+msgid "UI Download detour"
+msgstr "UI下载方式"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2133
+msgid "Default outbound will be used if empty."
+msgstr "若空将使用默认选择"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2147
+msgid "Default mode"
+msgstr "默认模式"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2148
+msgid "Default mode in clash, <code>Rule</code> will be used if none."
+msgstr "Clash的默认模式，若空将使用<code>规则</code>模式"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2155
+msgid "Clash Mode Direct DNS"
+msgstr "直连模式DNS"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2156
+msgid "Direct DNS for Clash Mode."
+msgstr "直连模式DNS。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2167
+msgid "Clash Mode GLOBAL DNS"
+msgstr "全局模式DNS"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2168
+msgid "Global DNS for Clash Mode."
+msgstr "全局模式DNS。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2180
+msgid "Clash Mode DIRECT Outbound"
+msgstr "直连模式出站"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2181
+msgid "Direct outbound for Clash Mode."
+msgstr "直连模式出站。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2191
+msgid "Clash Mode GLOBAL Outbound"
+msgstr "全局模式出站"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2192
+msgid "Global outbound for Clash Mode."
+msgstr "全局模式出站."
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1399
+msgid "Default Outbound"
+msgstr "默认出站"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1369
+msgid "Group Members"
+msgstr "节点组成员"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1599
+msgid "Rule Sets"
+msgstr "规则集"
