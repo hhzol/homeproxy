@@ -29,7 +29,8 @@ uci.load(uciconfig);
 
 const uciinfra = 'infra',
       ucimain = 'config',
-      ucicontrol = 'control';
+      ucicontrol = 'control',
+	  uciclash = 'experimental';
 
 const ucidnssetting = 'dns',
       ucidnsserver = 'dns_server',
@@ -56,25 +57,16 @@ const ntp_server = uci.get(uciconfig, uciinfra, 'ntp_server') || 'time.apple.com
 
 const ipv6_support = uci.get(uciconfig, ucimain, 'ipv6_support') || '0';
 
-const enable_clash_api = uci.get(uciconfig, 'experimental', 'enable_clash_api') || '0';
-const external_controller = uci.get(uciconfig, 'experimental', 'external_controller');
-const external_ui = uci.get(uciconfig, 'experimental', 'external_ui');
-const external_ui_download_url = uci.get(uciconfig, 'experimental', 'external_ui_download_url');
-const external_ui_download_detour = uci.get(uciconfig, 'experimental', 'external_ui_download_detour');
-const secret = uci.get(uciconfig, 'experimental', 'secret');
-const default_mode = uci.get(uciconfig, 'experimental', 'default_mode');
-
-const global_outbound = uci.get(uciconfig, 'experimental', 'global_outbound');
-const direct_outbound = uci.get(uciconfig, 'experimental', 'direct_outbound');
-const global_dns = uci.get(uciconfig, 'experimental', 'global_dns');
-const direct_dns = uci.get(uciconfig, 'experimental', 'direct_dns');
 const autoroute = uci.get(uciconfig, uciroutingsetting, 'autoroute');
 
 let main_node, main_udp_node, dedicated_udp_node,
     sniff_override, dns_server, china_dns_server, dns_default_strategy,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
     dns_client_subnet, cache_file_store_rdrc, cache_file_rdrc_timeout, direct_domain_list,
-    proxy_domain_list, enable_fakeip, resolve, route_rule_select, default_outbound, default_outbound_dns, domain_strategy;
+    proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, domain_strategy,
+	enable_clash_api, external_controller, external_ui, external_ui_download_url, external_ui_download_detour, 
+	secret, default_mode, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip;
+
 
 if (routing_mode !== 'custom') {
 	main_node = uci.get(uciconfig, ucimain, 'main_node') || 'nil';
@@ -120,6 +112,19 @@ if (routing_mode !== 'custom') {
 	default_outbound = uci.get(uciconfig, uciroutesetting, 'default_outbound') || 'nil';
 	default_outbound_dns = uci.get(uciconfig, uciroutesetting, 'default_outbound_dns') || 'default-dns';
 	domain_strategy = uci.get(uciconfig, uciroutesetting, 'domain_strategy');
+
+	/* Clash API */
+	enable_clash_api = uci.get(uciconfig, uciclash, 'enable_clash_api') || '0';
+	external_controller = uci.get(uciconfig, uciclash, 'external_controller');
+	external_ui = uci.get(uciconfig, uciclash, 'external_ui');
+	external_ui_download_url = uci.get(uciconfig, uciclash, 'external_ui_download_url');
+	external_ui_download_detour = uci.get(uciconfig, uciclash, 'external_ui_download_detour');
+	secret = uci.get(uciconfig, uciclash, 'secret');
+	default_mode = uci.get(uciconfig, uciclash, 'default_mode');
+	global_outbound = uci.get(uciconfig, uciclash, 'global_outbound');
+	direct_outbound = uci.get(uciconfig, uciclash, 'direct_outbound');
+	global_dns = uci.get(uciconfig, uciclash, 'global_dns');
+	direct_dns = uci.get(uciconfig, uciclash, 'direct_dns');
 }
 
 const proxy_mode = uci.get(uciconfig, ucimain, 'proxy_mode') || 'redirect_tproxy',
@@ -135,9 +140,8 @@ if (routing_mode === 'custom')
 	udp_timeout = uci.get(uciconfig, uciroutingsetting, 'udp_timeout');
 else
 	udp_timeout = uci.get(uciconfig, 'infra', 'udp_timeout');
-
+self_mark = uci.get(uciconfig, 'infra', 'self_mark') || '100';
 if (match(proxy_mode, /redirect/)) {
-	self_mark = uci.get(uciconfig, 'infra', 'self_mark') || '100';
 	redirect_port = uci.get(uciconfig, 'infra', 'redirect_port') || '5331';
 }
 if (match(proxy_mode), /tproxy/)
@@ -205,7 +209,7 @@ function generate_endpoint(node) {
 
 	const endpoint = {
 		type: node.type,
-		tag: 'cfg-' + node['.name'] + '-out',
+		tag: cfg.label,
 		address: node.wireguard_local_address,
 		mtu: strToInt(node.wireguard_mtu),
 		private_key: node.wireguard_private_key,
@@ -396,6 +400,7 @@ function get_resolver(cfg) {
 		return null;
 
 	switch (cfg) {
+	case 'default-dns':
 	case 'system-dns':
 		return cfg;
 	default:
@@ -682,6 +687,7 @@ if (match(proxy_mode, /tun/))
 		address: (ipv6_support === '1') ? [tun_addr4, tun_addr6] : [tun_addr4],
 		mtu: strToInt(tun_mtu),
 		auto_route: (autoroute === '1') ? true : false,
+		strict_route: true,
 		endpoint_independent_nat: strToBool(endpoint_independent_nat),
 		udp_timeout: strToTime(udp_timeout),
 		stack: tcpip_stack,
@@ -802,7 +808,7 @@ if (!isEmpty(main_node)) {
 						: null,
 
 				/* selector 专属 */
-				default: (cfg.default_outbound) ? cfg.default_outbound : null
+				default: (cfg.default_outbound && outbound_type === 'se') ? cfg.default_outbound : null
 
 			});
 
@@ -861,7 +867,7 @@ config.route = {
 		 */
 	],
 	rule_set: [],
-	auto_detect_interface: isEmpty(default_interface) ? true : null,
+	auto_detect_interface: isEmpty(default_interface) ? false : true,
 	default_interface: default_interface
 };
 
@@ -945,6 +951,7 @@ if (!isEmpty(main_node)) {
 		config.route.rule_set = null;
 } else if (!isEmpty(default_outbound)) {
 	config.route.default_domain_resolver = {
+		action: 'resolve',
 		server: get_resolver(default_outbound_dns)
 	};
 
@@ -957,10 +964,22 @@ if (!isEmpty(main_node)) {
 			clash_mode: 'global',
 			outbound: global_outbound,
 		});
-
+		let previousrule = '';
 	uci.foreach(uciconfig, uciroutingrule, (cfg) => {
 		if (cfg.enabled !== '1')
 			return null;
+		
+		// 指定规则前插入 resolve
+		if (
+			resolve === '1' &&
+			(route_rule_select === cfg['.name'] ||
+			previousrule === '')
+		){
+			push(config.route.rules, {
+				action: 'resolve',
+				strategy: domain_strategy || ''
+			});
+		}
 
 		// 当前规则
 		push(config.route.rules, {
@@ -998,19 +1017,7 @@ if (!isEmpty(main_node)) {
 			tls_fragment_fallback_delay: strToTime(cfg.tls_fragment_fallback_delay),
 			tls_record_fragment: strToBool(cfg.tls_record_fragment)
 		});
-
-		// 指定规则后插入 resolve
-		if (
-			resolve === '1' &&
-			route_rule_select &&
-			(route_rule_select === cfg['.name'] ||
-			route_rule_select === cfg.label)
-		){
-			push(config.route.rules, {
-				action: 'resolve',
-				strategy: domain_strategy || ''
-			});
-		}
+		previousrule = cfg['.name'];
 	});
 
 	config.route.final = get_outbound(default_outbound);
@@ -1025,7 +1032,7 @@ if (!isEmpty(main_node)) {
 			tag: 'cfg-' + cfg['.name'] + '-rule',
 			format: cfg.format,
 			path: cfg.path,
-			url: cfg.url,
+			url: (cfg.type === 'remote') ? cfg.url : null,
 			download_detour: get_outbound(cfg.outbound),
 			update_interval: cfg.update_interval
 		});
@@ -1039,13 +1046,14 @@ if (routing_mode in ['bypass_mainland_china', 'custom']) {
 		cache_file: {
 			enabled: true,
 			path: RUN_DIR + '/cache.db',
+			store_fakeip: (enable_fakeip) ? true : false,
 			store_rdrc: strToBool(cache_file_store_rdrc),
 			rdrc_timeout: strToTime(cache_file_rdrc_timeout)
 		},
 		clash_api: {
 			external_controller: (enable_clash_api === '1') ? external_controller : null,
-			external_ui: external_ui,
-			external_ui_download_url: external_ui_download_url,
+			external_ui: (external_ui) ? external_ui : '/etc/homeproxy/ui/',
+			external_ui_download_url: (external_ui_download_url) ? external_ui_download_url : 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
 			external_ui_download_detour: external_ui_download_detour,
 			secret: secret,
 			default_mode: default_mode
