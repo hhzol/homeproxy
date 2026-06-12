@@ -3170,3 +3170,134 @@ msgstr ""
 msgid "Global outbound for Clash Mode."
 msgstr ""
 
+#: htdocs/luci-static/resources/view/homeproxy/client.js:853
+msgid "Enable Auto Route"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:854
+msgid "Auto Route fot TUN mode."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1907
+msgid "Insert a rule of Domain Resolution"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1908
+msgid "With such a rule improves experience of QUIC connection."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1914
+msgid "Domain strategy of the inserted rule"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1915
+msgid "Default includes both IPV4 and IPV6."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1921
+msgid "The sequence of the inserted rule"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1922
+msgid "Insert the rule in front of the Selected rule. Default will be the first rule."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2066
+msgid "Clash API"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2071
+msgid "Enable Clash API"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2112
+msgid "External Controller"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2113
+msgid "RESTful web API listening address"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2118
+msgid "Secret"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2119
+msgid "ALWAYS set a secret if RESTful API is listening on 0.0.0.0"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2122
+msgid "External UI Path"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2123
+msgid "A relative path or an absolute path for the UI static web resource."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2127
+msgid "UI Download link"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2128
+msgid "SUGGEST: <code>https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip</code>."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2132
+msgid "UI Download detour"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2133
+msgid "Default outbound will be used if empty."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2147
+msgid "Default mode"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2148
+msgid "Default mode in clash, <code>Rule</code> will be used if none."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2155
+msgid "Clash Mode Direct DNS"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2156
+msgid "Direct DNS for Clash Mode."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2167
+msgid "Clash Mode GLOBAL DNS"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2168
+msgid "Global DNS for Clash Mode."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2180
+msgid "Clash Mode DIRECT Outbound"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2181
+msgid "Direct outbound for Clash Mode."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2191
+msgid "Clash Mode GLOBAL Outbound"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2192
+msgid "Global outbound for Clash Mode."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1399
+msgid "Default Outbound"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1369
+msgid "Group Members"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1599
+msgid "Rule Sets"
+msgstr ""
