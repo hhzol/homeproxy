@@ -493,7 +493,6 @@ chain homeproxy_mangle_prerouting {
 }
 
 chain homeproxy_mangle_output {
-	meta mark 100 counter return
 	meta mark {{ self_mark }} counter return
 
 	ip daddr @homeproxy_wan_proxy_addr_v4 counter goto homeproxy_mangle_mark
@@ -589,6 +588,7 @@ chain homeproxy_mangle_tun_mark {
 }
 
 chain homeproxy_mangle_tun {
+	meta mark {{ self_mark }} counter return
 	iifname {{ tun_name }} counter return
 
 	ip daddr @homeproxy_wan_proxy_addr_v4 counter goto homeproxy_mangle_tun_mark
