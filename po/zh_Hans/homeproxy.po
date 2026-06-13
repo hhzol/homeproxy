@@ -3120,10 +3120,6 @@ msgstr "有效端口值"
 msgid "valid uuid"
 msgstr "有效 uuid"
 
-#: htdocs/luci-static/resources/view/homeproxy/client.js:675
-msgid "Enable Auto Route"
-msgstr ""
-
 #: htdocs/luci-static/resources/view/homeproxy/client.js:853
 msgid "Enable Auto Route"
 msgstr "启用自动路由"
@@ -3169,7 +3165,7 @@ msgid "External Controller"
 msgstr "外部控制"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2113
-msgid "RESTful web API listening address。"
+msgid "RESTful web API listening address"
 msgstr "监听地址。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2118
@@ -3177,7 +3173,7 @@ msgid "Secret"
 msgstr "密码"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2119
-msgid "ALWAYS set a secret if RESTful API is listening on 0.0.0.0"
+msgid "ALWAYS set a secret if RESTful API is listening on <code>0.0.0.0</code>"
 msgstr "若监听地址为0.0.0.0请记得设置密码。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2122
@@ -3193,8 +3189,8 @@ msgid "UI Download link"
 msgstr "UI下载链接"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2128
-msgid "SUGGEST: <code>https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip</code>."
-msgstr "建议: <code>https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip</code>."
+msgid "SUGGEST: <code>https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip</code>."
+msgstr "建议: <code>https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip</code>."
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2132
 msgid "UI Download detour"
@@ -3213,7 +3209,7 @@ msgid "Default mode in clash, <code>Rule</code> will be used if none."
 msgstr "Clash的默认模式，若空将使用<code>规则</code>模式"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2155
-msgid "Clash Mode Direct DNS"
+msgid "Clash Mode DIRECT DNS"
 msgstr "直连模式DNS"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2156
