@@ -2117,6 +2117,7 @@ return view.extend({
 
 		so = ss.option(form.Value, 'secret', _('Secret'),
 			_('ALWAYS set a secret if RESTful API is listening on <code>0.0.0.0</code>'));
+		so.default = '';
 		so.depends('enable_clash_api', '1');
 
 		so = ss.option(form.Value, 'external_ui', _('External UI Path'),
