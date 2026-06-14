@@ -1280,7 +1280,7 @@ return view.extend({
 		o.depends('routing_mode', 'custom');
 
 		ss = o.subsection;
-		so = ss.option(form.Flag, 'fakeip', _('Enable FAKEIP'), _('Please disable the DNS Severs which you donnot want to filter(to resolved as real IP).'));
+		so = ss.option(form.Flag, 'fakeip', _('Enable FAKEIP'), _('When enabled, FAKEIP DNS server and rule will be inserted automatically.'));
 		so.editable = true;
 
 		so = ss.option(form.ListValue, 'default_strategy', _('Default DNS strategy'),
@@ -2078,7 +2078,7 @@ return view.extend({
 
 		o.cfgvalue = function () {
 			const controller =
-				L.uci.get('homeproxy', 'experimental', 'external_controller');
+				L.uci.get('homeproxy', 'experimental', 'external_controller')|| '0.0.0.0:9090';
 
 			const secret =
 				L.uci.get('homeproxy', 'experimental', 'secret') || '';
@@ -2117,7 +2117,6 @@ return view.extend({
 
 		so = ss.option(form.Value, 'secret', _('Secret'),
 			_('ALWAYS set a secret if RESTful API is listening on <code>0.0.0.0</code>'));
-		so.default = '';
 		so.depends('enable_clash_api', '1');
 
 		so = ss.option(form.Value, 'external_ui', _('External UI Path'),
