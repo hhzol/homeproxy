@@ -512,8 +512,7 @@ function main() {
 
 			const label = config.label;
 			config.label = null;
-			const confHash = md5(sprintf('%J', config)),
-			      nameHash = md5(label);
+			const confHash = md5(sprintf('%J', config));
 			config.label = label;
 
 			if (filter_check(config.label))
@@ -530,7 +529,6 @@ function main() {
 				push(node_result, []);
 				push(node_result[length(node_result)-1], config);
 				node_cache[groupHash][confHash] = config;
-				node_cache[groupHash][nameHash] = config;
 
 				count++;
 			}
@@ -555,28 +553,26 @@ function main() {
 
 	let added = 0, removed = 0;
 	uci.foreach(uciconfig, ucinode, (cfg) => {
-		/* Nodes created by the user */
-		if (!cfg.grouphash)
-			return null;
+	const key = cfg['.name'];
 
-		/* Empty object - failed to fetch nodes */
-		if (length(node_cache[cfg.grouphash]) === 0)
-			return null;
+	if (!node_cache[cfg.grouphash])
+		return;
 
-		if (!node_cache[cfg.grouphash] || !node_cache[cfg.grouphash][cfg['.name']]) {
-			uci.delete(uciconfig, cfg['.name']);
-			removed++;
+	// ❗关键：只处理 hash 节点
+	if (!node_cache[cfg.grouphash][key]) {
+		uci.delete(uciconfig, key);
+		removed++;
+		log(sprintf('Removing node: %s.', cfg.label || key));
+	} else {
+		map(keys(cfg), (v) => {
+		if (v in node_cache[cfg.grouphash][key])
+			uci.set(uciconfig, key, v, node_cache[cfg.grouphash][key][v]);
+		else
+			uci.delete(uciconfig, key, v);
+		});
 
-			log(sprintf('Removing node: %s.', cfg.label || cfg['name']));
-		} else {
-			map(keys(cfg), (v) => {
-				if (v in node_cache[cfg.grouphash][cfg['.name']])
-					uci.set(uciconfig, cfg['.name'], v, node_cache[cfg.grouphash][cfg['.name']][v]);
-				else
-					uci.delete(uciconfig, cfg['.name'], v);
-			});
-			node_cache[cfg.grouphash][cfg['.name']].isExisting = true;
-		}
+		node_cache[cfg.grouphash][key].isExisting = true;
+	}
 	});
 	let labelCount = {};
 	for (let nodes in node_result)
@@ -597,12 +593,22 @@ function main() {
 			node.label = label;
 
 			const nameHash = md5(
-				(node.type || '') + '|' +
-				(node.address || '') + '|' +
-				(node.port || '') 
+			(node.type || '') + '|' +
+			(node.address || '') + '|' +
+			(node.port || '')
 			);
+
+			// 1. 检查是否已存在
+			let exists = uci.get(uciconfig, nameHash);
+
+			// 2. 不存在才创建 section
+			if (!exists)
 			uci.set(uciconfig, nameHash, 'node');
-			map(keys(node), (v) => uci.set(uciconfig, nameHash, v, node[v]));
+
+			// 3. 更新字段
+			map(keys(node), (v) => {
+			uci.set(uciconfig, nameHash, v, node[v]);
+			});
 
 			added++;
 			log(sprintf('Adding node: %s.', node.label));
