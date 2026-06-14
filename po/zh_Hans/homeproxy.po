@@ -3251,3 +3251,7 @@ msgstr "节点组成员"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1599
 msgid "Rule Sets"
 msgstr "规则集"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:570
+msgid "Download runtime json file"
+msgstr "下载运行配置"
