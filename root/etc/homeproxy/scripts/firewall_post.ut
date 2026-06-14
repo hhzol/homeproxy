@@ -543,7 +543,6 @@ chain mangle_output {
 {% if (match(proxy_mode, /tun/)): %}
 chain homeproxy_mangle_lanac {
 	iifname {{ tun_name }} counter return
-	udp dport 53 counter return
 
 	{% if (control_info.listen_interfaces): %}
 	meta iifname != {{ array_to_nftarr(control_info.listen_interfaces) }} counter return
