@@ -3255,3 +3255,11 @@ msgstr "规则集"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:570
 msgid "Download runtime json file"
 msgstr "下载运行配置"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1283
+msgid "Enable FAKEIP"
+msgstr "启用FAKEIP"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1283
+msgid "When enabled, FAKEIP DNS server and rule will be inserted automatically."
+msgstr "启用后，将自动添加FAKEIP DNS服务器和规则。"
