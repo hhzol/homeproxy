@@ -140,8 +140,8 @@ if (routing_mode === 'custom')
 	udp_timeout = uci.get(uciconfig, uciroutingsetting, 'udp_timeout');
 else
 	udp_timeout = uci.get(uciconfig, 'infra', 'udp_timeout');
-self_mark = uci.get(uciconfig, 'infra', 'self_mark') || '100';
 if (match(proxy_mode, /redirect/)) {
+	self_mark = uci.get(uciconfig, 'infra', 'self_mark') || '100';
 	redirect_port = uci.get(uciconfig, 'infra', 'redirect_port') || '5331';
 }
 if (match(proxy_mode), /tproxy/)
