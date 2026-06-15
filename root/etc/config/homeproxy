@@ -75,6 +75,6 @@ config homeproxy 'server'
 	option enabled '0'
 	option log_level 'warn'
 
-config homeproxy 'experimental'
+config homeproxy 'clash_api'
 
 config homeproxy 'route_setting'
