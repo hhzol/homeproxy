@@ -2063,8 +2063,8 @@ return view.extend({
 		/* Rule set settings end */
 
 		/* clash_api settings start */
-		s.tab('experimental', _('Clash API'));
-		o = s.taboption('experimental', form.SectionValue, '_experimental', form.NamedSection, 'experimental', 'homeproxy');
+		s.tab('clash_api', _('Clash API'));
+		o = s.taboption('clash_api', form.SectionValue, '_clash_api', form.NamedSection, 'clash_api', 'homeproxy');
 		o.depends('routing_mode', 'custom');
 
 		ss = o.subsection;
@@ -2078,10 +2078,10 @@ return view.extend({
 
 		o.cfgvalue = function () {
 			const controller =
-				L.uci.get('homeproxy', 'experimental', 'external_controller')|| '0.0.0.0:9090';
+				L.uci.get('homeproxy', 'clash_api', 'external_controller')|| '0.0.0.0:9090';
 
 			const secret =
-				L.uci.get('homeproxy', 'experimental', 'secret') || '';
+				L.uci.get('homeproxy', 'clash_api', 'secret') || '';
 
 			if (!controller)
 				return '<em>Not set</em>';
