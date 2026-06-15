@@ -73,6 +73,8 @@ start_service() {
 		fi
 
 		# DNSMasq rules
+		uci set dhcp.@dnsmasq[0].rebind_protection='0'
+		uci commit dhcp
 		local ipv6_support dns_port
 		config_get_bool ipv6_support "config" "ipv6_support" "0"
 		config_get dns_port "infra" "dns_port" "5333"
@@ -307,6 +309,9 @@ stop_service() {
 	# Remove DNS hijack
 	rm -rf "$DNSMASQ_DIR/../dnsmasq-homeproxy.conf" "$DNSMASQ_DIR"
 	/etc/init.d/dnsmasq restart >"/dev/null" 2>&1
+	uci set dhcp.@dnsmasq[0].rebind_protection='1'
+	uci commit dhcp
+	/etc/init.d/dnsmasq restart
 
 	rm -f "$RUN_DIR/sing-box-c.json" "$RUN_DIR/sing-box-c.log" \
 		"$RUN_DIR/sing-box-s.json" "$RUN_DIR/sing-box-s.log"
