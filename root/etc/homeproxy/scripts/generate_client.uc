@@ -30,7 +30,7 @@ uci.load(uciconfig);
 const uciinfra = 'infra',
       ucimain = 'config',
       ucicontrol = 'control',
-	  uciclash = 'experimental';
+	  uciclash = 'clash_api';
 
 const ucidnssetting = 'dns',
       ucidnsserver = 'dns_server',
