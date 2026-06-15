@@ -1225,7 +1225,7 @@ msgstr "接口控制"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:560
 msgid "Interrupt existing connections"
-msgstr "中断现有连接"
+msgstr "出站变化时中断现有连接"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:561
 msgid "Interrupt existing connections when the selected outbound has changed."
