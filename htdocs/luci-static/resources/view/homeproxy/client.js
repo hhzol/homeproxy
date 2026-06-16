@@ -2127,7 +2127,7 @@ return view.extend({
 		so = ss.option(form.Value, 'external_ui_download_url', _('UI Download link'),
 			_('SUGGEST: <code>https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip</code>.'));
 		so.depends('enable_clash_api', '1');
-		so.default = 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip';
+		so.default = 'https://gh-proxy.com/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip';
 
 		so = ss.option(form.ListValue, 'external_ui_download_detour', _('UI Download detour'),
 			_('Default outbound will be used if empty.'));
