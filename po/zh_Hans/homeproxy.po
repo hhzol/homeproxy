@@ -3182,7 +3182,7 @@ msgstr "控制面板UI路径"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2123
 msgid "An absolute path for the UI static web resource."
-msgstr "UI静态网页资源的绝对路径"
+msgstr "UI静态网页资源的绝对路径。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2127
 msgid "UI Download link"
@@ -3190,7 +3190,7 @@ msgstr "UI下载链接"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2128
 msgid "SUGGEST: <code>https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip</code>."
-msgstr "建议: <code>https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip</code>."
+msgstr "建议: <code>https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip</code>。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2132
 msgid "UI Download detour"
@@ -3198,7 +3198,7 @@ msgstr "UI下载方式"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2133
 msgid "Default outbound will be used if empty."
-msgstr "若空将使用默认选择"
+msgstr "若空将使用默认选择。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2147
 msgid "Default mode"
@@ -3206,7 +3206,7 @@ msgstr "默认模式"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2148
 msgid "Default mode in clash, <code>Rule</code> will be used if none."
-msgstr "Clash的默认模式，若空将使用<code>规则</code>模式"
+msgstr "Clash的默认模式，若空将使用<code>规则</code>模式。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2155
 msgid "Clash Mode DIRECT DNS"
@@ -3238,7 +3238,7 @@ msgstr "全局模式出站"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2192
 msgid "Global outbound for Clash Mode."
-msgstr "全局模式出站."
+msgstr "全局模式出站。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1399
 msgid "Default Outbound"
