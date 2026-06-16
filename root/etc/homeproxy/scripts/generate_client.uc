@@ -964,17 +964,18 @@ if (!isEmpty(main_node)) {
 			clash_mode: 'global',
 			outbound: global_outbound,
 		});
-		let previousrule = '';
+	if (resolve === '1' && !route_rule_select){
+		push(config.route.rules, {
+			action: 'resolve',
+			strategy: domain_strategy || ''
+		});
+	}
+
 	uci.foreach(uciconfig, uciroutingrule, (cfg) => {
 		if (cfg.enabled !== '1')
 			return null;
-		
-		// 指定规则前插入 resolve
-		if (
-			resolve === '1' &&
-			(route_rule_select === cfg['.name'] ||
-			previousrule === '')
-		){
+
+		if (resolve === '1' && (route_rule_select === cfg['.name'])){
 			push(config.route.rules, {
 				action: 'resolve',
 				strategy: domain_strategy || ''
@@ -1017,7 +1018,6 @@ if (!isEmpty(main_node)) {
 			tls_fragment_fallback_delay: strToTime(cfg.tls_fragment_fallback_delay),
 			tls_record_fragment: strToBool(cfg.tls_record_fragment)
 		});
-		previousrule = cfg['.name'];
 	});
 
 	config.route.final = get_outbound(default_outbound);
