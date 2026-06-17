@@ -2042,10 +2042,10 @@ return view.extend({
 			delete this.vallist;
 
 			this.value('', _('Default'));
-			this.value('direct-out', _('Direct'));
+			this.value('直连', _('Direct'));
 			uci.sections(data[0], 'routing_node', (res) => {
 				if (res.enabled === '1')
-					this.value(res['.name'], res.label);
+					this.value(res.label, res.label);
 			});
 
 			return this.super('load', section_id);
