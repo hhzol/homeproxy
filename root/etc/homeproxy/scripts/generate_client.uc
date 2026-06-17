@@ -1030,7 +1030,7 @@ if (!isEmpty(main_node)) {
 			format: cfg.format,
 			path: cfg.path,
 			url: (cfg.type === 'remote') ? cfg.url : null,
-			download_detour: get_outbound(cfg.outbound),
+			download_detour: cfg.outbound,
 			update_interval: cfg.update_interval
 		});
 	});
