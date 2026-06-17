@@ -67,7 +67,6 @@ let main_node, main_udp_node, dedicated_udp_node,
 	enable_clash_api, external_controller, external_ui, external_ui_download_url, external_ui_download_detour, 
 	secret, default_mode, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip;
 
-
 if (routing_mode !== 'custom') {
 	main_node = uci.get(uciconfig, ucimain, 'main_node') || 'nil';
 	main_udp_node = uci.get(uciconfig, ucimain, 'main_udp_node') || 'nil';
@@ -414,7 +413,8 @@ function get_ruleset(cfg) {
 
 	let rules = [];
 	for (let i in cfg)
-		push(rules, isEmpty(i) ? null : 'cfg-' + i + '-rule');
+/*		ruleset_label = uci.get(uciconfig, i, 'label'); */
+		push(rules, isEmpty(i) ? null : i);
 	return rules;
 }
 /* Config helper end */
@@ -1029,7 +1029,7 @@ if (!isEmpty(main_node)) {
 
 		push(config.route.rule_set, {
 			type: cfg.type,
-			tag: 'cfg-' + cfg['.name'] + '-rule',
+			tag: cfg['.name'],
 			format: cfg.format,
 			path: cfg.path,
 			url: (cfg.type === 'remote') ? cfg.url : null,
