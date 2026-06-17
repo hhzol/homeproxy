@@ -38,7 +38,7 @@ start_service() {
 	if [ "$routing_mode" != "custom" ]; then
 		config_get outbound_node "config" "main_node" "nil"
 	else
-		config_get outbound_node "routing" "default_outbound" "nil"
+		config_get outbound_node "route_setting" "default_outbound" "nil"
 	fi
 
 	local server_enabled
