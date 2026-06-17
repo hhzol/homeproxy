@@ -3263,3 +3263,7 @@ msgstr "启用FAKEIP"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1283
 msgid "When enabled, FAKEIP DNS server and rule will be inserted automatically."
 msgstr "启用后，将自动添加FAKEIP DNS服务器和规则。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:970
+msgid "-none-"
+msgstr "-空-"
