@@ -64,7 +64,7 @@ if (routing_mode !== 'custom') {
 	outbound_udp_node = uci.get(cfgname, 'config', 'main_udp_node') || 'nil';
 	china_dns_server = uci.get(cfgname, 'config', 'china_dns_server');
 } else {
-	outbound_node = uci.get(cfgname, 'routing', 'default_outbound') || 'nil';
+	outbound_node = uci.get(cfgname, 'route_setting', 'default_outbound') || 'nil';
 	bypass_cn_traffic = uci.get(cfgname, 'routing', 'bypass_cn_traffic') || '0';
 }
 
