@@ -2066,6 +2066,7 @@ return view.extend({
 		s.tab('clash_api', _('Clash API'));
 		o = s.taboption('clash_api', form.SectionValue, '_clash_api', form.NamedSection, 'clash_api', 'homeproxy');
 		o.depends('routing_mode', 'custom');
+		o.depends('routing_mode', 'bypass_mainland_china');
 
 		ss = o.subsection;
 		so = ss.option(form.Flag, 'enable_clash_api', _('Enable Clash API'));
@@ -2157,6 +2158,7 @@ return view.extend({
 		so.load = function (section_id) {
 			delete this.keylist;
 			delete this.vallist;
+			this.value('default-dns', _('Default DNS (issued by WAN)'));
 			uci.sections(data[0], 'dns_server', (res) => {
 				this.value(res.label, res.label);
 			});
@@ -2169,7 +2171,6 @@ return view.extend({
 		so.load = function (section_id) {
 			delete this.keylist;
 			delete this.vallist;
-
 			uci.sections(data[0], 'dns_server', (res) => {
 				this.value(res.label, res.label);
 			});
