@@ -111,20 +111,19 @@ if (routing_mode !== 'custom') {
 	default_outbound = uci.get(uciconfig, uciroutesetting, 'default_outbound') || 'nil';
 	default_outbound_dns = uci.get(uciconfig, uciroutesetting, 'default_outbound_dns') || 'default-dns';
 	domain_strategy = uci.get(uciconfig, uciroutesetting, 'domain_strategy');
-
-	/* Clash API */
-	enable_clash_api = uci.get(uciconfig, uciclash, 'enable_clash_api') || '0';
-	external_controller = uci.get(uciconfig, uciclash, 'external_controller');
-	external_ui = uci.get(uciconfig, uciclash, 'external_ui');
-	external_ui_download_url = uci.get(uciconfig, uciclash, 'external_ui_download_url');
-	external_ui_download_detour = uci.get(uciconfig, uciclash, 'external_ui_download_detour');
-	secret = uci.get(uciconfig, uciclash, 'secret');
-	default_mode = uci.get(uciconfig, uciclash, 'default_mode');
-	global_outbound = uci.get(uciconfig, uciclash, 'global_outbound');
-	direct_outbound = uci.get(uciconfig, uciclash, 'direct_outbound');
-	global_dns = uci.get(uciconfig, uciclash, 'global_dns');
-	direct_dns = uci.get(uciconfig, uciclash, 'direct_dns');
 }
+/* Clash API */
+enable_clash_api = uci.get(uciconfig, uciclash, 'enable_clash_api') || '0';
+external_controller = uci.get(uciconfig, uciclash, 'external_controller');
+external_ui = uci.get(uciconfig, uciclash, 'external_ui');
+external_ui_download_url = uci.get(uciconfig, uciclash, 'external_ui_download_url');
+external_ui_download_detour = uci.get(uciconfig, uciclash, 'external_ui_download_detour');
+secret = uci.get(uciconfig, uciclash, 'secret');
+default_mode = uci.get(uciconfig, uciclash, 'default_mode');
+global_outbound = uci.get(uciconfig, uciclash, 'global_outbound');
+direct_outbound = uci.get(uciconfig, uciclash, 'direct_outbound');
+global_dns = uci.get(uciconfig, uciclash, 'global_dns');
+direct_dns = uci.get(uciconfig, uciclash, 'direct_dns');
 
 const proxy_mode = uci.get(uciconfig, ucimain, 'proxy_mode') || 'redirect_tproxy',
       default_interface = uci.get(uciconfig, ucicontrol, 'bind_interface');
@@ -464,7 +463,7 @@ config.dns = {
 if (!isEmpty(main_node)) {
 	/* Main DNS */
 	push(config.dns.servers, {
-		tag: 'main-dns',
+		tag: 'foreign',
 		domain_resolver: {
 			server: 'default-dns',
 			strategy: (ipv6_support !== '1') ? 'ipv4_only' : null
@@ -472,12 +471,20 @@ if (!isEmpty(main_node)) {
 		detour: 'main-out',
 		...parse_dnsserver(dns_server, 'tcp')
 	});
-	config.dns.final = 'main-dns';
-
+	config.dns.final = 'foreign';
+	if (enable_clash_api === '1') {
+		push(config.dns.rules, {
+			clash_mode: 'direct',
+			server: (direct_dns) ? direct_dns : 'default-dns'
+		});
+		push(config.dns.rules, {
+		clash_mode: 'global',
+		server: (global_dns) ? global_dns : 'foreign'
+		});
+	} 
 	if (length(direct_domain_list))
 		push(config.dns.rules, {
 			rule_set: 'direct-domain',
-			action: 'route',
 			server: (routing_mode === 'bypass_mainland_china') ? 'china-dns' : 'default-dns'
 		});
 
@@ -499,35 +506,22 @@ if (!isEmpty(main_node)) {
 			detour: self_mark ? '直连' : null,
 			...parse_dnsserver(china_dns_server)
 		});
-
+		
 		if (length(proxy_domain_list))
 			push(config.dns.rules, {
 				rule_set: 'proxy-domain',
-				action: 'route',
-				server: 'main-dns'
+				server: 'foreign'
 			});
 
 		push(config.dns.rules, {
 			rule_set: 'geosite-cn',
-			action: 'route',
 			server: 'china-dns',
 			strategy: 'prefer_ipv6'
 		});
 		push(config.dns.rules, {
-			type: 'logical',
-			mode: 'and',
-			rules: [
-				{
-					rule_set: 'geosite-noncn',
-					invert: true
-				},
-				{
-					rule_set: 'geoip-cn'
-				}
-			],
-			action: 'route',
-			server: 'china-dns',
-			strategy: 'prefer_ipv6'
+			rule_set: 'geosite-noncn',
+			server: 'foreign',
+			strategy: 'ipv4_only'
 		});
 	}
 } else if (!isEmpty(default_outbound)) {
@@ -567,16 +561,16 @@ if (!isEmpty(main_node)) {
 		});
 
 	/* DNS rules */
-		if (enable_clash_api === '1') {
+	if (enable_clash_api === '1') {
 		push(config.dns.rules, {
 			clash_mode: 'direct',
-			server: direct_dns
+			server: (direct_dns) ? direct_dns : 'default-dns'
 		});
 		push(config.dns.rules, {
 		clash_mode: 'global',
-		server: global_dns
+		server: (global_dns) ? global_dns : 'foreign'
 		});
-		} 
+	} 
 	uci.foreach(uciconfig, ucidnsrule, (cfg) => {
 		if (cfg.enabled !== '1')
 			return;
@@ -872,11 +866,19 @@ config.route = {
 if (!isEmpty(main_node)) {
 	/* Avoid DNS loop */
 	config.route.default_domain_resolver = {
-		action: 'route',
+		action: 'resolve',
 		server: (routing_mode === 'bypass_mainland_china') ? 'china-dns' : 'default-dns',
 		strategy: (ipv6_support !== '1') ? 'prefer_ipv4' : null
 	};
-
+	if (enable_clash_api === '1')
+		push(config.route.rules, {
+			clash_mode: 'direct',
+			outbound:  '直连',
+		});
+		push(config.route.rules, {
+			clash_mode: 'global',
+			outbound: (global_outbound) ? global_outbound : 'main-out',
+		});
 	/* Direct list */
 	if (length(direct_domain_list))
 		push(config.route.rules, {
@@ -894,6 +896,44 @@ if (!isEmpty(main_node)) {
 		});
 
 	config.route.final = 'main-out';
+
+	if (routing_mode === 'bypass_mainland_china') {
+		if (length(direct_domain_list))
+			push(config.route.rules, {
+				rule_set: 'direct-domain',
+				action: 'route',
+				outbound: '直连'
+			});
+		if (length(proxy_domain_list))
+			push(config.route.rules, {
+				rule_set: 'proxy-domain',
+				action: 'route',
+				outbound: 'main-out'
+			});
+
+		push(config.route.rules, {
+			rule_set: 'geosite-cn',
+			action: 'route',
+			outbound: '直连'
+
+		});
+		push(config.route.rules, {
+			type: 'logical',
+			mode: 'and',
+			rules: [
+				{
+					rule_set: 'geosite-noncn',
+					invert: true
+				},
+				{
+					rule_set: 'geoip-cn'
+				}
+			],
+			action: 'route',
+			outbound: '直连'
+		});
+	}
+
 
 	/* Rule set */
 	/* Direct list */
@@ -925,22 +965,22 @@ if (!isEmpty(main_node)) {
 			type: 'remote',
 			tag: 'geoip-cn',
 			format: 'binary',
-			url: 'https://fastly.jsdelivr.net/gh/1715173329/IPCIDR-CHINA@rule-set/cn.srs',
-			download_detour: 'main-out'
+			url: 'https://gh-proxy.com/https://raw.githubusercontent.com/1715173329/sing-geosite/heads/rule-set/geosite-cn.srs',
+			download_detour: '直连'
 		});
 		push(config.route.rule_set, {
 			type: 'remote',
 			tag: 'geosite-cn',
 			format: 'binary',
-			url: 'https://fastly.jsdelivr.net/gh/1715173329/sing-geosite@rule-set-unstable/geosite-geolocation-cn.srs',
-			download_detour: 'main-out'
+			url: 'https://gh-proxy.com/https://raw.githubusercontent.com/1715173329/sing-geosite/heads/rule-set-unstable/geosite-geolocation-cn.srs',
+			download_detour: '直连'
 		});
 		push(config.route.rule_set, {
 			type: 'remote',
 			tag: 'geosite-noncn',
 			format: 'binary',
-			url: 'https://fastly.jsdelivr.net/gh/1715173329/sing-geosite@rule-set-unstable/geosite-geolocation-!cn.srs',
-			download_detour: 'main-out'
+			url: 'https://gh-proxy.com/https://raw.githubusercontent.com/1715173329/sing-geosite/heads/rule-set-unstable/geosite-geolocation-!cn.srs',
+			download_detour: '直连'
 		});
 	}
 
@@ -959,7 +999,7 @@ if (!isEmpty(main_node)) {
 		});
 		push(config.route.rules, {
 			clash_mode: 'global',
-			outbound: global_outbound,
+			outbound: (global_outbound) ? global_outbound : 'main-out',
 		});
 	if (resolve === '1' && !route_rule_select){
 		push(config.route.rules, {
@@ -1048,7 +1088,7 @@ if (routing_mode in ['bypass_mainland_china', 'custom']) {
 			rdrc_timeout: strToTime(cache_file_rdrc_timeout)
 		},
 		clash_api: {
-			external_controller: (enable_clash_api === '1') ? external_controller : null,
+			external_controller: (enable_clash_api === '1') ? external_controller : '0.0.0.0:9091',
 			external_ui: (external_ui) ? external_ui : '/etc/homeproxy/ui/',
 			external_ui_download_url: (external_ui_download_url) ? external_ui_download_url : 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
 			external_ui_download_detour: (external_ui_download_detour === 'direct-out') ? '直连' : external_ui_download_detour,
