@@ -1297,7 +1297,7 @@ return view.extend({
 			this.value('system-dns', _('System DNS'));
 			uci.sections(data[0], 'dns_server', (res) => {
 				if (res.enabled === '1')
-					this.value(res['.name'], res.label);
+					this.value(res.label, res.label);
 			});
 
 			return this.super('load', section_id);
@@ -1910,8 +1910,26 @@ return view.extend({
 		so.default = so.disabled;
 		so.rmempty = false;
 
+		// server
+		so = ss.option(form.ListValue, 'server', _('DNS Server'),
+			_('Defalut will leave the DNS server in blank and the final DNS server will be used eventually.'));
+		so.load = function(section_id) {
+			delete this.keylist;
+			delete this.vallist;
+			this.value('', _('Default'));
+			uci.sections(data[0], 'dns_server', (res) => {
+				if (res.enabled === '1')
+					this.value(res.label, res.label);
+			});
+
+			return this.super('load', section_id);
+		}
+		so.rmempty = true;
+		so.editable = true;
+		so.depends('resolve', '1');
+
 		// domain_strategy
-		so = ss.option(form.ListValue, 'domain_strategy', _('Domain strategy of the inserted rule'),
+		so = ss.option(form.ListValue, 'domain_strategy', _('Domain strategy'),
 			_('Default includes both IPV4 and IPV6.'));
 		for (let i in hp.dns_strategy)
 			so.value(i, hp.dns_strategy[i]);
@@ -1925,7 +1943,6 @@ return view.extend({
 		uci.sections('homeproxy', 'routing_rule', function(s) {
 			so.value(s['.name'], s.label || s['.name']);
 		});
-
 		so.depends('resolve', '1');
 
 
