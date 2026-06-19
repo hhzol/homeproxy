@@ -63,7 +63,7 @@ let main_node, main_udp_node, dedicated_udp_node,
     sniff_override, dns_server, china_dns_server, dns_default_strategy,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
     dns_client_subnet, cache_file_store_rdrc, cache_file_rdrc_timeout, direct_domain_list,
-    proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, domain_strategy,
+    proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, inserted_dns_server, domain_strategy,
 	enable_clash_api, external_controller, external_ui, external_ui_download_url, external_ui_download_detour, 
 	secret, default_mode, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip;
 
@@ -110,6 +110,7 @@ if (routing_mode !== 'custom') {
 	route_rule_select = uci.get(uciconfig, uciroutesetting, 'route_rule_select');
 	default_outbound = uci.get(uciconfig, uciroutesetting, 'default_outbound') || 'nil';
 	default_outbound_dns = uci.get(uciconfig, uciroutesetting, 'default_outbound_dns') || 'default-dns';
+	inserted_dns_server = uci.get(uciconfig, uciroutesetting, 'server');
 	domain_strategy = uci.get(uciconfig, uciroutesetting, 'domain_strategy');
 }
 /* Clash API */
@@ -1015,6 +1016,7 @@ if (!isEmpty(main_node)) {
 		if (resolve === '1' && (route_rule_select === cfg['.name'])){
 			push(config.route.rules, {
 				action: 'resolve',
+				server: (inserted_dns_server) ? get_resolver(inserted_dns_server) : null,
 				strategy: domain_strategy || ''
 			});
 		}
