@@ -3267,3 +3267,12 @@ msgstr "启用后，将自动添加FAKEIP DNS服务器和规则。"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:970
 msgid "-none-"
 msgstr "-空-"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1914
+msgid "DNS Server"
+msgstr "域名解析DNS"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1915
+msgid "Defalut will leave the DNS server in blank and the final DNS server will be used eventually."
+msgstr "默认将<code>域名解析DNS</code>留空，最终将使用<code>默认DNS服务器</code>"
+
