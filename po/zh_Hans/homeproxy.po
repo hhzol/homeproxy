@@ -479,7 +479,7 @@ msgstr "默认 DNS 服务器"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:377
 msgid "Default DNS server for resolving domain name in the server address."
-msgstr "用于解析服务器地址中的域名的默认 DNS 服务器。"
+msgstr "用于解析节点服务器域名的DNS服务器。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:877
 msgid "Default DNS strategy"
