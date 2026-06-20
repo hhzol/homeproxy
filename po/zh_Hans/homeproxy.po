@@ -3162,19 +3162,19 @@ msgstr "启用Clash面板"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2112
 msgid "External Controller"
-msgstr "外部控制"
+msgstr "外部控制端口"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2113
-msgid "RESTful web API listening address"
-msgstr "监听地址。"
+msgid "RESTful web API listening port"
+msgstr "监听端口。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2118
 msgid "Secret"
 msgstr "密码"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2119
-msgid "ALWAYS set a secret if RESTful API is listening on <code>0.0.0.0</code>"
-msgstr "若监听地址为0.0.0.0请记得设置密码。"
+msgid "ALWAYS set a secret for security!"
+msgstr "安全起见请记得设置密码。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2122
 msgid "External UI Path"
