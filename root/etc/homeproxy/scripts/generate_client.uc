@@ -62,7 +62,7 @@ const autoroute = uci.get(uciconfig, uciroutingsetting, 'autoroute');
 let main_node, main_udp_node, dedicated_udp_node,
     sniff_override, dns_server, china_dns_server, dns_default_strategy,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
-    dns_client_subnet, cache_file_store_rdrc, cache_file_rdrc_timeout, direct_domain_list,
+    dns_client_subnet, cache_file_store_rdrc, cache_file_rdrc_timeout, gfw_domain_list, direct_domain_list,
     proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, inserted_dns_server, domain_strategy,
 	enable_clash_api, external_controller, external_ui, external_ui_download_url, external_ui_download_detour, 
 	secret, default_mode, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip;
@@ -82,6 +82,10 @@ if (routing_mode !== 'custom') {
 			china_dns_server = wan_dns;
 	}
 	dns_default_strategy = (ipv6_support !== '1') ? 'ipv4_only' : null;
+
+	gfw_domain_list = trim(readfile(HP_DIR + '/resources/gfw_list.txt'));
+	if (gfw_domain_list)
+		gfw_domain_list = split(gfw_domain_list, /[\r\n]/);
 
 	direct_domain_list = trim(readfile(HP_DIR + '/resources/direct_list.txt'));
 	if (direct_domain_list)
@@ -386,7 +390,7 @@ function get_outbound(cfg) {
 		default:
 			const node = uci.get(uciconfig, cfg, 'label');
 			if (isEmpty(node))
-				die(sprintf("%s's node is missing, please check your configuration.", cfg));
+				return cfg;
 			else
 				return node;
 		}
@@ -472,7 +476,7 @@ if (!isEmpty(main_node)) {
 		detour: 'main-out',
 		...parse_dnsserver(dns_server, 'tcp')
 	});
-	config.dns.final = 'foreign';
+
 	if (enable_clash_api === '1') {
 		push(config.dns.rules, {
 			clash_mode: 'direct',
@@ -490,12 +494,13 @@ if (!isEmpty(main_node)) {
 		});
 
 	/* Filter out SVCB/HTTPS queries for "exquisite" Apple devices */
-	if (routing_mode === 'gfwlist' || length(proxy_domain_list))
+	if (routing_mode === 'gfwlist')
 		push(config.dns.rules, {
-			rule_set: (routing_mode !== 'gfwlist') ? 'proxy-domain' : null,
-			query_type: [64, 65],
-			action: 'reject'
+			rule_set: 'gfw-domain',
+			server: 'foreign',
+			strategy: 'ipv4_only'
 		});
+		config.dns.final = 'default-dns';
 
 	if (routing_mode === 'bypass_mainland_china') {
 		push(config.dns.servers, {
@@ -524,6 +529,7 @@ if (!isEmpty(main_node)) {
 			server: 'foreign',
 			strategy: 'ipv4_only'
 		});
+		config.dns.final = 'foreign';
 	}
 } else if (!isEmpty(default_outbound)) {
 	/* DNS servers */
@@ -800,7 +806,7 @@ if (!isEmpty(main_node)) {
 						: null,
 
 				/* selector 专属 */
-				default: (cfg.default_outbound && outbound_type === 'selector') ? cfg.default_outbound : null
+				default: (cfg.default_outbound && outbound_type === 'selector') ? get_outbound(cfg.default_outbound) : null
 
 			});
 
@@ -859,7 +865,7 @@ config.route = {
 		 */
 	],
 	rule_set: [],
-	auto_detect_interface: isEmpty(default_interface) ? false : true,
+	auto_detect_interface: isEmpty(default_interface) ? true : false,
 	default_interface: default_interface
 };
 
@@ -880,12 +886,21 @@ if (!isEmpty(main_node)) {
 			clash_mode: 'global',
 			outbound: (global_outbound) ? global_outbound : 'main-out',
 		});
+
 	/* Direct list */
 	if (length(direct_domain_list))
 		push(config.route.rules, {
 			rule_set: 'direct-domain',
 			action: 'route',
 			outbound: '直连'
+		});
+
+	/* Proxy list */
+	if (length(proxy_domain_list))
+		push(config.route.rules, {
+			rule_set: 'proxy-domain',
+			action: 'route',
+			outbound: 'main-out'
 		});
 
 	/* Main UDP out */
@@ -896,21 +911,20 @@ if (!isEmpty(main_node)) {
 			outbound: 'main-udp-out'
 		});
 
-	config.route.final = 'main-out';
+
+
+	if (routing_mode === 'gfwlist') {
+
+		push(config.route.rules, {
+			rule_set: 'gfw-domain',
+			action: 'route',
+			outbound: 'main-out'
+
+		});
+		config.route.final = '直连';
+	}
 
 	if (routing_mode === 'bypass_mainland_china') {
-		if (length(direct_domain_list))
-			push(config.route.rules, {
-				rule_set: 'direct-domain',
-				action: 'route',
-				outbound: '直连'
-			});
-		if (length(proxy_domain_list))
-			push(config.route.rules, {
-				rule_set: 'proxy-domain',
-				action: 'route',
-				outbound: 'main-out'
-			});
 
 		push(config.route.rules, {
 			rule_set: 'geosite-cn',
@@ -933,6 +947,7 @@ if (!isEmpty(main_node)) {
 			action: 'route',
 			outbound: '直连'
 		});
+		config.route.final = 'main-out';
 	}
 
 
@@ -960,6 +975,18 @@ if (!isEmpty(main_node)) {
 				}
 			]
 		});
+
+	if (routing_mode === 'gfwlist' && length(gfw_domain_list)) {
+		push(config.route.rule_set, {
+			type: 'inline',
+			tag: 'gfw-domain',
+			rules: [
+				{
+					domain_keyword: gfw_domain_list,
+				}
+			]
+		});
+	}
 
 	if (routing_mode === 'bypass_mainland_china') {
 		push(config.route.rule_set, {
@@ -1080,7 +1107,7 @@ if (!isEmpty(main_node)) {
 /* Routing rules end */
 
 /* Experimental start */
-if (routing_mode in ['bypass_mainland_china', 'custom']) {
+if (routing_mode in ['gfwlist', 'bypass_mainland_china', 'custom']) {
 	config.experimental = {
 		cache_file: {
 			enabled: true,
@@ -1090,7 +1117,7 @@ if (routing_mode in ['bypass_mainland_china', 'custom']) {
 			rdrc_timeout: strToTime(cache_file_rdrc_timeout)
 		},
 		clash_api: {
-			external_controller: (enable_clash_api === '1') ? external_controller : '0.0.0.0:9091',
+			external_controller: (enable_clash_api === '1') ? '0.0.0.0:' + external_controller : '0.0.0.0:9091',
 			external_ui: (external_ui) ? external_ui : '/etc/homeproxy/ui/',
 			external_ui_download_url: (external_ui_download_url) ? external_ui_download_url : 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
 			external_ui_download_detour: (external_ui_download_detour === 'direct-out') ? '直连' : external_ui_download_detour,
