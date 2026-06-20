@@ -3165,7 +3165,7 @@ msgid "External Controller"
 msgstr "外部控制端口"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2113
-msgid "RESTful web API listening port"
+msgid "RESTful web API listening port."
 msgstr "监听端口。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2118
