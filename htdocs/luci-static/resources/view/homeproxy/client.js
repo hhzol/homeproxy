@@ -476,7 +476,7 @@ function openOutboundManager(section_id, nodeList, displayMap) {
                 console.log('selected label =', label);
 
                 // 保存默认 outbound，存 id 最安全
-                uci.set('homeproxy', section_id, 'default_outbound', label);
+                uci.set('homeproxy', section_id, 'default_outbound', value);
 
                 ui.hideModal(); // 关闭弹窗
             }
@@ -1019,7 +1019,6 @@ return view.extend({
 				}, _('Rule Sets')),
 				btns.firstChild
 			);
-
 			return tdEl;
 		};
 
@@ -1711,7 +1710,7 @@ return view.extend({
 			delete this.keylist;
 			delete this.vallist;
 
-			this.value('direct-out', _('Direct'));
+			this.value('直连', _('Direct'));
 			uci.sections(data[0], 'routing_node', (res) => {
 				if (res.enabled === '1')
 					this.value(res['.name'], res.label);
@@ -1903,6 +1902,44 @@ return view.extend({
 		o = s.taboption('route_setting', form.SectionValue, '_route_setting', form.NamedSection, 'route_setting', 'homeproxy');
 		o.depends('routing_mode', 'custom');
 		ss = o.subsection;
+
+		so = ss.option(form.ListValue, 'default_outbound', _('Default outbound'),
+			_('Default outbound for connections not matched by any routing rules.'));
+		so.load = function(section_id) {
+			delete this.keylist;
+			delete this.vallist;
+
+			this.value('nil', _('Disable (the service)'));
+			this.value('direct-out', _('Direct'));
+			this.value('block-out', _('Block'));
+			uci.sections(data[0], 'routing_node', (res) => {
+				if (res.enabled === '1')
+					this.value(res['.name'], res.label);
+			});
+
+			return this.super('load', section_id);
+		}
+		so.default = 'nil';
+		so.rmempty = false;
+
+		so = ss.option(form.ListValue, 'default_outbound_dns', _('Default outbound DNS'),
+			_('Default DNS server for resolving domain name in the server address.'));
+		so.load = function(section_id) {
+			delete this.keylist;
+			delete this.vallist;
+
+			this.value('default-dns', _('Default DNS (issued by WAN)'));
+			this.value('system-dns', _('System DNS'));
+			uci.sections(data[0], 'dns_server', (res) => {
+				if (res.enabled === '1')
+					this.value(res.label, res.label);
+			});
+
+			return this.super('load', section_id);
+		}
+		so.default = 'default-dns';
+		so.rmempty = false;
+
 		// resolve
 		so = ss.option(form.Flag, 'resolve', _('Insert a rule of Domain Resolution'),
 			_('With such a rule improves experience of QUIC connection.'));
@@ -1944,44 +1981,6 @@ return view.extend({
 			so.value(s['.name'], s.label || s['.name']);
 		});
 		so.depends('resolve', '1');
-
-
-		so = ss.option(form.ListValue, 'default_outbound', _('Default outbound'),
-			_('Default outbound for connections not matched by any routing rules.'));
-		so.load = function(section_id) {
-			delete this.keylist;
-			delete this.vallist;
-
-			this.value('nil', _('Disable (the service)'));
-			this.value('direct-out', _('Direct'));
-			this.value('block-out', _('Block'));
-			uci.sections(data[0], 'routing_node', (res) => {
-				if (res.enabled === '1')
-					this.value(res['.name'], res.label);
-			});
-
-			return this.super('load', section_id);
-		}
-		so.default = 'nil';
-		so.rmempty = false;
-
-		so = ss.option(form.ListValue, 'default_outbound_dns', _('Default outbound DNS'),
-			_('Default DNS server for resolving domain name in the server address.'));
-		so.load = function(section_id) {
-			delete this.keylist;
-			delete this.vallist;
-
-			this.value('default-dns', _('Default DNS (issued by WAN)'));
-			this.value('system-dns', _('System DNS'));
-			uci.sections(data[0], 'dns_server', (res) => {
-				if (res.enabled === '1')
-					this.value(res.label, res.label);
-			});
-
-			return this.super('load', section_id);
-		}
-		so.default = 'default-dns';
-		so.rmempty = false;
 		
 		/* Route settings end */
 		/* Custom routing settings end */
@@ -2083,6 +2082,7 @@ return view.extend({
 		s.tab('clash_api', _('Clash API'));
 		o = s.taboption('clash_api', form.SectionValue, '_clash_api', form.NamedSection, 'clash_api', 'homeproxy');
 		o.depends('routing_mode', 'custom');
+		o.depends('routing_mode', 'gfwlist');
 		o.depends('routing_mode', 'bypass_mainland_china');
 
 		ss = o.subsection;
@@ -2096,27 +2096,26 @@ return view.extend({
 
 		o.cfgvalue = function () {
 			const controller =
-				L.uci.get('homeproxy', 'clash_api', 'external_controller')|| '0.0.0.0:9090';
+				L.uci.get('homeproxy', 'clash_api', 'external_controller')|| '9090';
 
 			const secret =
 				L.uci.get('homeproxy', 'clash_api', 'secret') || '';
 
 			if (!controller)
 				return '<em>Not set</em>';
-
+/*
 			const apiPort =
 				controller.substring(controller.lastIndexOf(':') + 1);
-
+*/
 			const params = new URLSearchParams({
 				host: location.hostname,
 				hostname: location.hostname,
-				port: apiPort,
+				port: controller,
 				secret: secret
-
 			});
 
 			const url =
-				`http://${location.hostname}:${apiPort}/ui/?${params.toString()}`;
+				`http://${location.hostname}:${controller}/ui/?${params.toString()}`;
 
 			return `
 				<a href="${url}"
@@ -2128,13 +2127,13 @@ return view.extend({
 		};
 
 		so = ss.option(form.Value, 'external_controller', _('External Controller'),
-			_('RESTful web API listening address'));
+			_('RESTful web API listening port.'));
 		so.rmempty = false;
-		so.default = '0.0.0.0:9090';
+		so.default = '9090';
 		so.depends('enable_clash_api', '1');
 
 		so = ss.option(form.Value, 'secret', _('Secret'),
-			_('ALWAYS set a secret if RESTful API is listening on <code>0.0.0.0</code>'));
+			_('ALWAYS set a secret for security!'));
 		so.depends('enable_clash_api', '1');
 
 		so = ss.option(form.Value, 'external_ui', _('External UI Path'),
