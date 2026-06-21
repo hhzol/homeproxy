@@ -539,7 +539,7 @@ return view.extend({
 		// 创建 HomeProxy Map
 		m = new form.Map('homeproxy',
 			_('HomeProxy'),
-			_('The modern ImmortalWrt proxy platform for ARM64/AMD64.')
+			_('Modified Homeproxy. A proxy applicatiion of singbox core with fakeip and clash dashboard.')
 		);
 
 		// =======================
