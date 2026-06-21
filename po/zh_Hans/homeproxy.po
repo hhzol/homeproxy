@@ -2591,8 +2591,8 @@ msgstr "可接受的最低 TLS 版本。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:102
 #: htdocs/luci-static/resources/view/homeproxy/server.js:130
-msgid "The modern ImmortalWrt proxy platform for ARM64/AMD64."
-msgstr "为 ARM64/AMD64 设计的现代 ImmortalWrt 代理平台。"
+msgid "Modified Homeproxy. A proxy applicatiion of singbox core with fakeip and clash dashboard."
+msgstr "Homeproxy魔改版。以singbox为核心，支持fakeip和Clash面板的代理插件。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:454
 #: htdocs/luci-static/resources/view/homeproxy/server.js:875
