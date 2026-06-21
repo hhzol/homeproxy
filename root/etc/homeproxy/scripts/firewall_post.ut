@@ -276,6 +276,8 @@ chain homeproxy_redirect_proxy_port {
 }
 
 chain homeproxy_redirect_lanac {
+	ip daddr @neteasemusic counter return
+	ip6 daddr @neteasemusic6 counter return
 	{% if (control_info.listen_interfaces): %}
 	meta iifname != {{ array_to_nftarr(control_info.listen_interfaces) }} counter return
 	{% endif %}
