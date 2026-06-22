@@ -16,7 +16,7 @@ const routing_mode = uci.get(cfgname, 'config', 'routing_mode') || 'bypass_mainl
 let outbound_node, tun_name;
 if (match(proxy_mode, /tun/)) {
 	if (routing_mode === 'custom')
-		outbound_node = uci.get(cfgname, 'route_setting', 'default_outbound') || 'nil';
+		outbound_node = uci.get(cfgname, 'route_setting', 'default_outbound') || 'br-lan';
 	else
 		outbound_node = uci.get(cfgname, 'config', 'main_node') || 'nil';
 
