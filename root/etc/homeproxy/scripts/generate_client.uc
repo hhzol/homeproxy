@@ -1119,7 +1119,7 @@ if (routing_mode in ['gfwlist', 'bypass_mainland_china', 'custom']) {
 		clash_api: {
 			external_controller: (enable_clash_api === '1') ? '0.0.0.0:' + external_controller : '0.0.0.0:9091',
 			external_ui: (external_ui) ? external_ui : '/etc/homeproxy/ui/',
-			external_ui_download_url: (external_ui_download_url) ? external_ui_download_url : 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
+			external_ui_download_url: (external_ui_download_url) ? external_ui_download_url : 'https://gh-proxy.com/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
 			external_ui_download_detour: (external_ui_download_detour === 'direct-out') ? '直连' : external_ui_download_detour,
 			secret: secret,
 			default_mode: default_mode
