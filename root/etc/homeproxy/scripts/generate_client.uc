@@ -559,14 +559,19 @@ if (!isEmpty(main_node)) {
 			detour: outbound
 		});
 	});
-	if (enable_fakeip === '1')
-		push(config.dns.servers,{
-		tag: 'fakeip',
-		type: 'fakeip',
-		inet4_range: '198.18.0.0/15',
-		inet6_range: 'fc00::/18'
-		});
-
+	if (enable_fakeip === '1') {
+		let fakeip_server = {
+			tag: 'fakeip',
+			type: 'fakeip',
+			inet4_range: '198.18.0.0/15'
+		};
+	
+		if (ipv6_support === '1') {
+			fakeip_server.inet6_range = 'fc00::/18';
+		}
+	
+		push(config.dns.servers, fakeip_server);
+	}
 	/* DNS rules */
 	if (enable_clash_api === '1') {
 		push(config.dns.rules, {
