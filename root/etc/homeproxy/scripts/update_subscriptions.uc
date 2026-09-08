@@ -592,12 +592,8 @@ function main() {
 
 			node.label = label;
 
-			// 1. 将 label 转换为 UCI 兼容的 section 名称 (替换非 [a-zA-Z0-9_] 字符为 _)
-            let node_id = replace(label, /[^a-zA-Z0-9_]/g, '_');
-
-            // 防止转换后为空
-            if (isEmpty(node_id))
-                node_id = md5(label);
+			// 1. 直接对包含重名序号的最终 label 计算 MD5 Hash 作为 node ID
+            const node_id = md5(node.label);
 
             // 2. 检查节点 Section 是否已存在
             let exists = uci.get(uciconfig, node_id);
@@ -606,7 +602,7 @@ function main() {
             if (!exists)
                 uci.set(uciconfig, node_id, 'node');
 
-            // 4. 更新节点的各个属性字段
+            // 4. 更新节点字段
             map(keys(node), (v) => {
                 uci.set(uciconfig, node_id, v, node[v]);
             });
