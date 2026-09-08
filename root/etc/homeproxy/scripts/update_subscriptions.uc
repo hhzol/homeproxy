@@ -592,23 +592,24 @@ function main() {
 
 			node.label = label;
 
-			const nameHash = md5(
-			(node.type || '') + '|' +
-			(node.address || '') + '|' +
-			(node.port || '')
-			);
+			// 1. 将 label 转换为 UCI 兼容的 section 名称 (替换非 [a-zA-Z0-9_] 字符为 _)
+            let node_id = replace(label, /[^a-zA-Z0-9_]/g, '_');
 
-			// 1. 检查是否已存在
-			let exists = uci.get(uciconfig, nameHash);
+            // 防止转换后为空
+            if (isEmpty(node_id))
+                node_id = md5(label);
 
-			// 2. 不存在才创建 section
-			if (!exists)
-			uci.set(uciconfig, nameHash, 'node');
+            // 2. 检查节点 Section 是否已存在
+            let exists = uci.get(uciconfig, node_id);
 
-			// 3. 更新字段
-			map(keys(node), (v) => {
-			uci.set(uciconfig, nameHash, v, node[v]);
-			});
+            // 3. 不存在才创建 section
+            if (!exists)
+                uci.set(uciconfig, node_id, 'node');
+
+            // 4. 更新节点的各个属性字段
+            map(keys(node), (v) => {
+                uci.set(uciconfig, node_id, v, node[v]);
+            });
 
 			added++;
 			log(sprintf('Adding node: %s.', node.label));
