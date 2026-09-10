@@ -34,7 +34,7 @@ const allow_insecure = uci.get(uciconfig, ucisubscription, 'allow_insecure') || 
       filter_keywords = uci.get(uciconfig, ucisubscription, 'filter_keywords') || [],
       packet_encoding = uci.get(uciconfig, ucisubscription, 'packet_encoding') || 'xudp',
       subscription_urls = uci.get(uciconfig, ucisubscription, 'subscription_url') || [],
-      user_agent = uci.get(uciconfig, ucisubscription, 'user_agent') || 'HomeProxy',
+      user_agent = uci.get(uciconfig, ucisubscription, 'user_agent'),
       via_proxy = uci.get(uciconfig, ucisubscription, 'update_via_proxy') || '0';
 
 const routing_mode = uci.get(uciconfig, ucimain, 'routing_mode') || 'bypass_mainalnd_china';
