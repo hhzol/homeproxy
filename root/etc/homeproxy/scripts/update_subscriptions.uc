@@ -13,7 +13,6 @@ import { connect } from 'ubus';
 import { cursor } from 'uci';
 
 import { urldecode, urlencode } from 'luci.http';
-import { init_action } from 'luci.sys';
 
 import {
 	wGET, decodeBase64Str, getTime, isEmpty, parseURL,
@@ -35,7 +34,7 @@ const allow_insecure = uci.get(uciconfig, ucisubscription, 'allow_insecure') || 
       filter_keywords = uci.get(uciconfig, ucisubscription, 'filter_keywords') || [],
       packet_encoding = uci.get(uciconfig, ucisubscription, 'packet_encoding') || 'xudp',
       subscription_urls = uci.get(uciconfig, ucisubscription, 'subscription_url') || [],
-      user_agent = uci.get(uciconfig, ucisubscription, 'user_agent'),
+      user_agent = uci.get(uciconfig, ucisubscription, 'user_agent') || 'HomeProxy',
       via_proxy = uci.get(uciconfig, ucisubscription, 'update_via_proxy') || '0';
 
 const routing_mode = uci.get(uciconfig, ucimain, 'routing_mode') || 'bypass_mainalnd_china';
@@ -78,6 +77,10 @@ function log(...args) {
 	const logfile = open(`${RUN_DIR}/homeproxy.log`, 'a');
 	logfile.write(`${getTime()} [SUBSCRIBE] ${join(' ', args)}\n`);
 	logfile.close();
+}
+
+function service_action(action) {
+	return system([ '/etc/init.d/homeproxy', action ]);
 }
 
 function parse_uri(uri) {
@@ -476,7 +479,8 @@ function parse_uri(uri) {
 function main() {
 	if (via_proxy !== '1') {
 		log('Stopping service...');
-		init_action('homeproxy', 'stop');
+		service_action('stop');
+		
 	}
 
 	for (let url in subscription_urls) {
@@ -545,7 +549,7 @@ function main() {
 
 		if (via_proxy !== '1') {
 			log('Starting service...');
-			init_action('homeproxy', 'start');
+			service_action('start');
 		}
 
 		return false;
@@ -667,8 +671,8 @@ function main() {
 
 	if (need_restart) {
 		log('Restarting service...');
-		init_action('homeproxy', 'stop');
-		init_action('homeproxy', 'start');
+		service_action('stop');
+		service_action('start');
 	}
 
 	log(sprintf('%s nodes added, %s removed.', added, removed));
@@ -684,6 +688,6 @@ if (!isEmpty(subscription_urls))
 		log(e.stacktrace[0].context);
 
 		log('Restarting service...');
-		init_action('homeproxy', 'stop');
-		init_action('homeproxy', 'start');
+		service_action('stop');
+		service_action('start');
 	}
