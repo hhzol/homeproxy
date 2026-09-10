@@ -34,7 +34,7 @@ const allow_insecure = uci.get(uciconfig, ucisubscription, 'allow_insecure') || 
       filter_keywords = uci.get(uciconfig, ucisubscription, 'filter_keywords') || [],
       packet_encoding = uci.get(uciconfig, ucisubscription, 'packet_encoding') || 'xudp',
       subscription_urls = uci.get(uciconfig, ucisubscription, 'subscription_url') || [],
-      user_agent = uci.get(uciconfig, ucisubscription, 'user_agent'),
+      user_agent = uci.get(uciconfig, ucisubscription, 'user_agent')|| 'Mozilla/5.0',
       via_proxy = uci.get(uciconfig, ucisubscription, 'update_via_proxy') || '0';
 
 const routing_mode = uci.get(uciconfig, ucimain, 'routing_mode') || 'bypass_mainalnd_china';
@@ -65,7 +65,7 @@ function filter_check(name) {
 
 /* Common var start */
 const node_cache = {},
-      node_result = [];
+      new_nodes = [];
 
 const ubus = connect();
 const sing_features = ubus.call('luci.homeproxy', 'singbox_get_features', {}) || {};
@@ -530,8 +530,8 @@ function main() {
 					config.packet_encoding = packet_encoding;
 
 				config.grouphash = groupHash;
-				push(node_result, []);
-				push(node_result[length(node_result)-1], config);
+				config.confhash = confHash;          // ← 新增：把配置指纹写入节点
+				push(new_nodes, config);
 				node_cache[groupHash][confHash] = config;
 
 				count++;
@@ -544,7 +544,7 @@ function main() {
 			log(sprintf('Successfully fetched %s nodes of total %s from %s.', count, length(nodes), url));
 	}
 
-	if (isEmpty(node_result)) {
+	if (isEmpty(new_nodes)) {
 		log('Failed to update subscriptions: no valid node found.');
 
 		if (via_proxy !== '1') {
@@ -555,65 +555,93 @@ function main() {
 		return false;
 	}
 
-	let added = 0, removed = 0;
-	uci.foreach(uciconfig, ucinode, (cfg) => {
-	const key = cfg['.name'];
-
-	if (!node_cache[cfg.grouphash])
-		return;
-
-	// ❗关键：只处理 hash 节点
-	if (!node_cache[cfg.grouphash][key]) {
-		uci.delete(uciconfig, key);
-		removed++;
-		log(sprintf('Removing node: %s.', cfg.label || key));
-	} else {
-		map(keys(cfg), (v) => {
-		if (v in node_cache[cfg.grouphash][key])
-			uci.set(uciconfig, key, v, node_cache[cfg.grouphash][key][v]);
-		else
-			uci.delete(uciconfig, key, v);
-		});
-
-		node_cache[cfg.grouphash][key].isExisting = true;
-	}
-	});
+	// 构建以 md5(label) 为键的新节点映射，并处理重名
+	const new_nodes_by_id = {};
 	let labelCount = {};
-	for (let nodes in node_result)
-		map(nodes, (node) => {
-			if (node.isExisting)
-				return null;
 
-			let label = node.label || `${node.type}:${node.address}:${node.port}`;
+	for (let i = 0; i < length(new_nodes); i++) {
+		let node = new_nodes[i];
+		let label = node.label || `${node.type}:${node.address}:${node.port}`;
 
-			if (!labelCount[label])
-				labelCount[label] = 1;
-			else
-				labelCount[label]++;
+		if (!labelCount[label])
+			labelCount[label] = 1;
+		else
+			labelCount[label]++;
 
-			if (labelCount[label] > 1)
-				label = `${label} (${labelCount[label]})`;
+		if (labelCount[label] > 1)
+			label = `${label} (${labelCount[label]})`;
 
-			node.label = label;
+		node.label = label;
+		const node_id = md5(label);
+		node.node_id = node_id;
+		new_nodes_by_id[node_id] = node;
+	}
 
-			// 1. 直接对包含重名序号的最终 label 计算 MD5 Hash 作为 node ID
-            const node_id = md5(node.label);
+	let added = 0, removed = 0, updated = 0;
 
-            // 2. 检查节点 Section 是否已存在
-            let exists = uci.get(uciconfig, node_id);
+	// 遍历旧节点，比对并删除集合 B，更新集合 A
+	uci.foreach(uciconfig, ucinode, (cfg) => {
+		const key = cfg['.name'];          // 旧节点的 ID = md5(label)
 
-            // 3. 不存在才创建 section
-            if (!exists)
-                uci.set(uciconfig, node_id, 'node');
+		// 只处理本次更新涉及的订阅组
+		if (!node_cache[cfg.grouphash])
+			return;
 
-            // 4. 更新节点字段
-            map(keys(node), (v) => {
-                uci.set(uciconfig, node_id, v, node[v]);
-            });
+		if (!new_nodes_by_id[key]) {
+			// 集合 B：仅存在于旧节点中，删除
+			uci.delete(uciconfig, key);
+			removed++;
+			log(sprintf('Removing node: %s.', cfg.label || key));
+		} else {
+			// 集合 A：新旧共有
+			const new_config = new_nodes_by_id[key];
+			new_config.isExisting = true;   // 标记为已存在，后续不再添加
 
-			added++;
-			log(sprintf('Adding node: %s.', node.label));
+			// confHash 相同则视为内容未变，直接跳过写入
+			if (cfg.confhash && cfg.confhash === new_config.confhash)
+				return;
+
+			// 先删除旧配置里存在、但新配置里没有的键（跳过 .name/.type 等内部键）
+			map(keys(cfg), (v) => {
+				if (substr(v, 0, 1) === '.')
+					return;
+				if (!(v in new_config))
+					uci.delete(uciconfig, key, v);
+			});
+
+			// 再遍历新配置的所有键：新增或覆盖
+			map(keys(new_config), (v) => {
+				if (v === 'isExisting')
+					return;
+				uci.set(uciconfig, key, v, new_config[v]);
+			});
+
+			updated++;
+			log(sprintf('Updating node: %s.', new_config.label || key));
+		}
+	});
+
+	// 添加新节点（仅添加未标记 isExisting 的）
+	for (let node_id in new_nodes_by_id) {
+		const node = new_nodes_by_id[node_id];
+
+		if (node.isExisting)
+			continue;
+
+		// 理论上此时 section 不存在，但保险起见
+		let exists = uci.get(uciconfig, node_id);
+		if (!exists)
+			uci.set(uciconfig, node_id, 'node');
+
+		map(keys(node), (v) => {
+			if (v === 'isExisting')
+				return;
+			uci.set(uciconfig, node_id, v, node[v]);
 		});
+
+		added++;
+		log(sprintf('Adding node: %s.', node.label));
+	}
 	uci.commit(uciconfig);
 
 	let need_restart = (via_proxy !== '1');
@@ -629,6 +657,9 @@ function main() {
 					}
 					return true;
 				});
+				// 写回清理后的 urltest 列表
+				uci.set(uciconfig, ucimain, 'main_urltest_nodes', main_urltest_nodes);
+				uci.commit(uciconfig);
 			}
 
 			if ((main_node === 'urltest') ? !length(main_urltest_nodes) : !uci.get(uciconfig, main_node)) {
@@ -649,6 +680,9 @@ function main() {
 						}
 						return true;
 					});
+					// 写回清理后的 urltest 列表
+					uci.set(uciconfig, ucimain, 'main_udp_urltest_nodes', main_udp_urltest_nodes);
+					uci.commit(uciconfig);
 				}
 
 				if ((main_udp_node === 'urltest') ? !length(main_udp_urltest_nodes) : !uci.get(uciconfig, main_udp_node)) {
@@ -675,7 +709,7 @@ function main() {
 		service_action('start');
 	}
 
-	log(sprintf('%s nodes added, %s removed.', added, removed));
+	log(sprintf('%s nodes added, %s updated, %s removed.', added, updated, removed));
 	log('Successfully updated subscriptions.');
 }
 
