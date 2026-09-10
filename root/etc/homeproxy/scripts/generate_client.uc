@@ -95,7 +95,6 @@ if (routing_mode !== 'custom') {
 	if (proxy_domain_list)
 		proxy_domain_list = split(proxy_domain_list, /[\r\n]/);
 
-	sniff_override = uci.get(uciconfig, uciinfra, 'sniff_override') || '1';
 } else {
 	/* DNS settings */
 	dns_default_strategy = uci.get(uciconfig, ucidnssetting, 'default_strategy');
@@ -108,7 +107,6 @@ if (routing_mode !== 'custom') {
 	cache_file_rdrc_timeout = uci.get(uciconfig, ucidnssetting, 'cache_file_rdrc_timeout');
 
 	/* Routing settings */
-	sniff_override = uci.get(uciconfig, uciroutingsetting, 'sniff_override');
 	enable_fakeip = uci.get(uciconfig, ucidnssetting, 'fakeip');
 	resolve = uci.get(uciconfig, uciroutesetting, 'resolve');
 	route_rule_select = uci.get(uciconfig, uciroutesetting, 'route_rule_select');
@@ -117,6 +115,7 @@ if (routing_mode !== 'custom') {
 	inserted_dns_server = uci.get(uciconfig, uciroutesetting, 'server');
 	domain_strategy = uci.get(uciconfig, uciroutesetting, 'domain_strategy');
 }
+sniff_override = uci.get(uciconfig, uciroutingsetting, 'sniff_override');
 /* Clash API */
 enable_clash_api = uci.get(uciconfig, uciclash, 'enable_clash_api') || '0';
 external_controller = uci.get(uciconfig, uciclash, 'external_controller');
@@ -850,7 +849,7 @@ if (isEmpty(config.endpoints))
 /* Default settings */
 config.route = {
 	rules: [
-		sniff_override === '1' ? {action: "sniff", sniffer: ["http", "tls", "quic", "dns"]} : '',
+		sniff_override === '1' ? {action: "sniff"} : '',
 		{inbound: 'dns-in',	action: 'hijack-dns'}
 	],
 	rule_set: [],
