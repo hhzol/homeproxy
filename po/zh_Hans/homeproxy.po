@@ -3276,3 +3276,6 @@ msgstr "域名解析DNS"
 msgid "Defalut will leave the DNS server in blank and the final DNS server will be used eventually."
 msgstr "默认将<code>域名解析DNS</code>留空，最终将使用<code>默认DNS服务器</code>"
 
+#: htdocs/luci-static/resources/view/homeproxy/client.js:575
+msgid "Download Mobile Json"
+msgstr "手机专用配置"
