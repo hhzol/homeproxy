@@ -567,39 +567,159 @@ return view.extend({
 				E('button', {
 					id: 'download_config_btn',
 					class: 'cbi-button cbi-button-action'
-				}, _('Download runtime json file'))
+				}, _('Download runtime json file')),
+				' ',
+				E('button', {
+					id: 'download_mobile_btn',
+					class: 'cbi-button cbi-button-action'
+				}, _('Download Mobile Json'))
 			]);
 		};
 		poll.add(function () {
 
+			/* ============================================================
+			 * 原下载按钮
+			 * ============================================================ */
 			let btn = document.getElementById('download_config_btn');
-			if (!btn || btn.dataset.bound) return;
+			if (btn && !btn.dataset.bound) {
 
-			btn.dataset.bound = "1";
+				btn.dataset.bound = "1";
 
-			btn.onclick = function () {
+				btn.onclick = function () {
 
-				L.require('fs').then(fs => {
+					L.require('fs').then(fs => {
 
-					fs.read('/var/run/homeproxy/sing-box-c.json')
-						.then(content => {
+						fs.read('/var/run/homeproxy/sing-box-c.json')
+							.then(content => {
 
-							let blob = new Blob([content], { type: 'application/json' });
-							let url = URL.createObjectURL(blob);
+								let blob = new Blob([content], { type: 'application/json' });
+								let url = URL.createObjectURL(blob);
 
-							let a = document.createElement('a');
-							a.href = url;
-							a.download = 'sing-box-c.json';
-							a.click();
+								let a = document.createElement('a');
+								a.href = url;
+								a.download = 'sing-box-c.json';
+								a.click();
 
-							URL.revokeObjectURL(url);
-						})
-						.catch(err => {
-							console.log(err);
-							alert(_('Program not running, cannot download configuration!'));
-						});
-				});
-			};
+								URL.revokeObjectURL(url);
+							})
+							.catch(err => {
+								console.log(err);
+								alert(_('Program not running, cannot download configuration!'));
+							});
+					});
+				};
+			}
+
+			/* ============================================================
+			 * 新增：下载 mobile json
+			 * ============================================================ */
+			let btn2 = document.getElementById('download_mobile_btn');
+			if (btn2 && !btn2.dataset.bound) {
+
+				btn2.dataset.bound = "1";
+
+				btn2.onclick = function () {
+
+					// 仅在 custom 路由模式下可用
+					let routing_mode = uci.get('homeproxy', 'config', 'routing_mode');
+					if (routing_mode !== 'custom') {
+						alert(_('This feature is only available in Custom routing mode.'));
+						return;
+					}
+
+					L.require('fs').then(fs => {
+
+						fs.read('/var/run/homeproxy/sing-box-c.json')
+							.then(content => {
+
+								let data;
+								try {
+									data = JSON.parse(content);
+								} catch (e) {
+									alert('JSON parse error: ' + e);
+									return;
+								}
+
+								/* ====================================================
+								 * 替换 log / inbounds / experimental 三部分
+								 * ==================================================== */
+								data.log = {
+									disabled: false,
+									level: 'warn',
+									timestamp: true
+								};
+
+								data.inbounds = [
+									{
+										type: 'direct',
+										tag: 'dns-in',
+										listen: '::',
+										listen_port: 5333
+									},
+									{
+										type: 'tun',
+										address: [
+											'172.19.0.0/30',
+											'fdfe:dcba:9876::0/126'
+										],
+										stack: 'system',
+										auto_route: true,
+										mtu: 9000,
+										endpoint_independent_nat: true
+									}
+								];
+
+								data.experimental = {
+									cache_file: {
+										enabled: true
+									},
+									clash_api: {
+										external_controller: '0.0.0.0:9090',
+										secret: '123456',
+										default_mode: 'rule'
+									}
+								};
+								/* ====================================================
+								* 删除 dns.rules[*].strategy
+								* ==================================================== */
+								if (data.dns && Array.isArray(data.dns.rules)) {
+									for (let i = 0; i < data.dns.rules.length; i++) {
+										let rule = data.dns.rules[i];
+										if (rule && 'strategy' in rule)
+											delete rule.strategy;
+									}
+								}
+
+								/* ====================================================
+								* route.auto_detect_interface = true
+								* 删除 route.default_interface
+								* ==================================================== */
+								if (data.route) {
+									data.route.auto_detect_interface = true;
+
+									if ('default_interface' in data.route)
+										delete data.route.default_interface;
+								}
+								/* ==================================================== */
+
+								let text = JSON.stringify(data, null, 2);
+								let blob = new Blob([text], { type: 'application/json' });
+								let url = URL.createObjectURL(blob);
+
+								let a = document.createElement('a');
+								a.href = url;
+								a.download = 'sing-box-mobile.json';
+								a.click();
+
+								URL.revokeObjectURL(url);
+							})
+							.catch(err => {
+								console.log(err);
+								alert(_('Program not running, cannot download configuration!'));
+							});
+					});
+				};
+			}
 		});
 		// =======================
 
