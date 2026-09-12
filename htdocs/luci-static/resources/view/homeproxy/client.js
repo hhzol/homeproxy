@@ -2238,10 +2238,11 @@ return view.extend({
 				`http://${location.hostname}:${controller}/ui/?${params.toString()}`;
 
 			return `
-				<a href="${url}"
+				<a class="btn cbi-button cbi-button-action"
+				href="${url}"
 				target="_blank"
 				rel="noopener noreferrer">
-				Open Dashboard
+					Open Dashboard
 				</a>
 			`;
 		};
