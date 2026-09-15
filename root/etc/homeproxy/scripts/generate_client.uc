@@ -983,21 +983,21 @@ if (!isEmpty(main_node)) {
 			tag: 'geoip-cn',
 			format: 'binary',
 			url: 'https://gh-proxy.com/https://raw.githubusercontent.com/1715173329/sing-geosite/heads/rule-set/geosite-cn.srs',
-			download_detour: '直连'
+			http_client: 'http1'
 		});
 		push(config.route.rule_set, {
 			type: 'remote',
 			tag: 'geosite-cn',
 			format: 'binary',
 			url: 'https://gh-proxy.com/https://raw.githubusercontent.com/1715173329/sing-geosite/heads/rule-set-unstable/geosite-geolocation-cn.srs',
-			download_detour: '直连'
+			http_client: 'http1'
 		});
 		push(config.route.rule_set, {
 			type: 'remote',
 			tag: 'geosite-noncn',
 			format: 'binary',
 			url: 'https://gh-proxy.com/https://raw.githubusercontent.com/1715173329/sing-geosite/heads/rule-set-unstable/geosite-geolocation-!cn.srs',
-			download_detour: '直连'
+			http_client: 'http1'
 		});
 	}
 
@@ -1088,7 +1088,7 @@ if (!isEmpty(main_node)) {
 			format: cfg.format,
 			path: cfg.path,
 			url: (cfg.type === 'remote') ? cfg.url : null,
-			download_detour: cfg.outbound,
+			http_client: cfg.http_client,
 			update_interval: cfg.update_interval
 		});
 	});
