@@ -30,7 +30,7 @@ uci.load(uciconfig);
 const uciinfra = 'infra',
       ucimain = 'config',
       ucicontrol = 'control',
-	  uciclash = 'clash_api';
+	    uciclash = 'clash_api';
 
 const ucidnssetting = 'dns',
       ucidnsserver = 'dns_server',
@@ -39,8 +39,9 @@ const ucidnssetting = 'dns',
 const uciroutingsetting = 'routing',
       uciroutingnode = 'routing_node',
       uciroutingrule = 'routing_rule',
-	  uciroutesetting = 'route_setting';
+	    uciroutesetting = 'route_setting';
 
+const ucihttpclient = 'http_client';
 
 const ucinode = 'node';
 const uciruleset = 'ruleset';
@@ -1107,7 +1108,7 @@ if (routing_mode in ['gfwlist', 'bypass_mainland_china', 'custom']) {
 		clash_api: {
 			external_controller: (enable_clash_api === '1') ? '0.0.0.0:' + external_controller : '0.0.0.0:9091',
 			external_ui: (external_ui) ? external_ui : '/etc/homeproxy/ui/',
-			external_ui_download_url: (external_ui_download_url) ? external_ui_download_url : 'https://gh-proxy.com/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
+			external_ui_download_url: (external_ui_download_url) ? external_ui_download_url : 'https://gh.monlor.com/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
 			external_ui_download_detour: (external_ui_download_detour === 'direct-out') ? '直连' : external_ui_download_detour,
 			secret: secret,
 			default_mode: default_mode
@@ -1115,6 +1116,30 @@ if (routing_mode in ['gfwlist', 'bypass_mainland_china', 'custom']) {
 	};
 }
 /* Experimental end */
+
+/* HTTP clients start */
+config.http_clients = [];
+
+uci.foreach(uciconfig, ucihttpclient, (cfg) => {
+	if (cfg.enabled === '0')
+		return;
+
+	if (isEmpty(cfg.label))
+		return;
+
+	push(config.http_clients, {
+		tag: cfg.label,
+		engine: cfg.engine || '',
+		version: strToInt(cfg.version),
+		headers: !isEmpty(cfg.headers) ? {
+			'User-Agent': cfg.headers
+		} : null
+	});
+});
+
+if (isEmpty(config.http_clients))
+	config.http_clients = null;
+/* HTTP clients end */
 
 system('mkdir -p ' + RUN_DIR);
 writefile(RUN_DIR + '/sing-box-c.json', sprintf('%.J\n', removeBlankAttrs(config)));
