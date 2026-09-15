@@ -3279,3 +3279,11 @@ msgstr "默认将<code>域名解析DNS</code>留空，最终将使用<code>默�
 #: htdocs/luci-static/resources/view/homeproxy/client.js:575
 msgid "Download Mobile Json"
 msgstr "手机专用配置"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1441
+msgid "Store DNS"
+msgstr "保存DNS缓存"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1442
+msgid "Store DNS cache in the cache file."
+msgstr "保存DNS缓存到缓存文件"
