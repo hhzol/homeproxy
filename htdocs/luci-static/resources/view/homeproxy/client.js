@@ -2171,17 +2171,16 @@ return view.extend({
 		so.placeholder = 'https://gh-proxy.com/';
 		so.modalonly = true;
 
-		so = ss.option(form.ListValue, 'outbound', _('Outbound'),
-			_('Tag of the outbound to download rule set.'));
+		so = ss.option(form.ListValue, 'http_client', _('HTTP Client'),
+			_('Tag of the HTTP client to download rule set.'));
 		so.load = function(section_id) {
 			delete this.keylist;
 			delete this.vallist;
 
-			this.value('', _('Default'));
-			this.value('直连', _('Direct'));
-			uci.sections(data[0], 'routing_node', (res) => {
-				if (res.enabled === '1')
-					this.value(res.label, res.label);
+			uci.sections(data[0], 'http_client', (res) => {
+				if (res.enabled === '0')
+					return;
+				this.value(res.label, res.label);
 			});
 
 			return this.super('load', section_id);
