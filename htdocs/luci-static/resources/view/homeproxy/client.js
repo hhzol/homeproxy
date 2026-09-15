@@ -1438,14 +1438,8 @@ return view.extend({
 			'If value is an IP address instead of prefix, <code>/32</code> or <code>/128</code> will be appended automatically.'));
 		so.datatype = 'or(cidr, ipaddr)';
 
-		so = ss.option(form.Flag, 'cache_file_store_rdrc', _('Store RDRC'),
-			_('Store rejected DNS response cache.<br/>' +
-			'The check results of <code>Address filter DNS rule items</code> will be cached until expiration.'));
-
-		so = ss.option(form.Value, 'cache_file_rdrc_timeout', _('RDRC timeout'),
-			_('Timeout of rejected DNS response cache in seconds. <code>604800 (7d)</code> is used by default.'));
-		so.datatype = 'uinteger';
-		so.depends('cache_file_store_rdrc', '1');
+		so = ss.option(form.Flag, 'cache_file_store_dns', _('Store DNS'),
+			_('Store DNS cache in the cache file.'));
 		/* DNS settings end */
 
 		/* Routing nodes start */
