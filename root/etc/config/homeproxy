@@ -221,6 +221,17 @@ config ruleset 'apple'
 	option update_interval '1d'
 	option remark 'https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo-lite/geosite/apple.srs'
 
+config http_client 'http_client_1'
+	option label 'http1'
+
+config http_client 'http_client_2'
+	option label 'http2'
+	option version '3'
+
+config http_client 'http_client_3'
+	option label 'http3'
+	option headers 'Mozilla/5.0'
+
 config routing_node 'default'
 	option label '🚀 默认选择'
 	option enabled '1'
