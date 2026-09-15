@@ -235,14 +235,6 @@ config ruleset 'apple'
 config http_client 'http_client_1'
 	option label 'http1'
 
-config http_client 'http_client_2'
-	option label 'http2'
-	option version '3'
-
-config http_client 'http_client_3'
-	option label 'http3'
-	option headers 'Mozilla/5.0'
-
 config routing_node 'default'
 	option label '🚀 默认选择'
 	option enabled '1'
