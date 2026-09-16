@@ -56,8 +56,9 @@ config homeproxy 'dns'
 	option dns_strategy 'prefer_ipv4'
 	option default_server '无效'
 	option fakeip '1'
-	option cache_file_store_rdrc '1'
-	option disable_cache '1'
+	option cache_file_store_fakeip '1'
+	option cache_file_store_dns '1'
+
 
 config homeproxy 'subscription'
 	option auto_update '0'
