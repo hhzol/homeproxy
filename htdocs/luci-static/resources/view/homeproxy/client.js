@@ -1438,6 +1438,9 @@ return view.extend({
 			'If value is an IP address instead of prefix, <code>/32</code> or <code>/128</code> will be appended automatically.'));
 		so.datatype = 'or(cidr, ipaddr)';
 
+		so = ss.option(form.Flag, 'cache_file_store_fakeip', _('Store FAKEIP'),
+			_('Store FAKEIP in the cache file.'));
+
 		so = ss.option(form.Flag, 'cache_file_store_dns', _('Store DNS'),
 			_('Store DNS cache in the cache file.'));
 		/* DNS settings end */
