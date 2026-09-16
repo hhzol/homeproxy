@@ -3287,3 +3287,11 @@ msgstr "保存DNS缓存"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1442
 msgid "Store DNS cache in the cache file."
 msgstr "保存DNS缓存到缓存文件"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1445
+msgid "Store FAKEIP"
+msgstr "保存FAKEIP"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1446
+msgid "Store DNS FAKEIP in the cache file."
+msgstr "保存FAKEIP到缓存文件"
