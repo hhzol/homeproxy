@@ -730,6 +730,11 @@ return view.extend({
 		
 		s.tab('routing', _('Settings'));
 
+		o = s.taboption('routing', form.Flag, 'enabled', _('Enable HomeProxy'));
+		o.default = o.disabled;
+		o.rmempty = false;
+		o.editable = true;
+
 		o = s.taboption('routing', form.ListValue, 'main_node', _('Main node'));
 		o.value('nil', _('Disable'));
 		o.value('urltest', _('URLTest'));
