@@ -91,6 +91,9 @@ config homeproxy 'route_setting'
 	option server '国外'
 	option route_rule_select 'cnip'
 
+config http_client 'http_client_1'
+	option label 'http1'
+
 config dns_server 'local'
 	option label '国内'
 	option enabled '1'
