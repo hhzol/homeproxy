@@ -735,6 +735,56 @@ return view.extend({
 		o.rmempty = false;
 		o.editable = true;
 
+		o = s.taboption('routing', form.ListValue, 'routing_mode', _('Routing mode'));
+		o.value('gfwlist', _('GFWList'));
+		o.value('bypass_mainland_china', _('Bypass mainland China'));
+		o.value('proxy_mainland_china', _('Only proxy mainland China'));
+		o.value('custom', _('Custom routing'));
+		o.value('global', _('Global'));
+		o.default = 'bypass_mainland_china';
+		o.rmempty = false;
+		o.onchange = function(ev, section_id, value) {
+			if (section_id && value === 'custom')
+				this.map.save(null, true);
+		}
+
+		o = s.taboption('routing', form.Value, 'routing_port', _('Routing ports'),
+			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
+		o.value('', _('All ports'));
+		o.value('common', _('Common ports only (bypass P2P traffic)'));
+		o.validate = function(section_id, value) {
+			if (section_id && value && value !== 'common') {
+
+				let ports = [];
+				for (let i of value.split(',')) {
+					if (!stubValidator.apply('port', i) && !stubValidator.apply('portrange', i))
+						return _('Expecting: %s').format(_('valid port value'));
+					if (ports.includes(i))
+						return _('Port %s alrealy exists!').format(i);
+					ports = ports.concat(i);
+				}
+			}
+
+			return true;
+		}
+
+		o = s.taboption('routing', form.ListValue, 'proxy_mode', _('Proxy mode'));
+		o.value('redirect', _('Redirect TCP'));
+		if (features.hp_has_tproxy)
+			o.value('redirect_tproxy', _('Redirect TCP + TProxy UDP'));
+		if (features.hp_has_ip_full && features.hp_has_tun) {
+			o.value('redirect_tun', _('Redirect TCP + Tun UDP'));
+			o.value('tun', _('Tun TCP/UDP'));
+		} else {
+			o.description = _('To enable Tun support, you need to install <code>ip-full</code> and <code>kmod-tun</code>');
+		}
+		o.default = 'redirect_tproxy';
+		o.rmempty = false;
+
+		o = s.taboption('routing', form.Flag, 'ipv6_support', _('IPv6 support'));
+		o.default = o.enabled;
+		o.rmempty = false;
+
 		o = s.taboption('routing', form.ListValue, 'main_node', _('Main node'));
 		o.value('nil', _('Disable'));
 		o.value('urltest', _('URLTest'));
@@ -871,56 +921,6 @@ return view.extend({
 
 			return true;
 		}
-
-		o = s.taboption('routing', form.ListValue, 'routing_mode', _('Routing mode'));
-		o.value('gfwlist', _('GFWList'));
-		o.value('bypass_mainland_china', _('Bypass mainland China'));
-		o.value('proxy_mainland_china', _('Only proxy mainland China'));
-		o.value('custom', _('Custom routing'));
-		o.value('global', _('Global'));
-		o.default = 'bypass_mainland_china';
-		o.rmempty = false;
-		o.onchange = function(ev, section_id, value) {
-			if (section_id && value === 'custom')
-				this.map.save(null, true);
-		}
-
-		o = s.taboption('routing', form.Value, 'routing_port', _('Routing ports'),
-			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
-		o.value('', _('All ports'));
-		o.value('common', _('Common ports only (bypass P2P traffic)'));
-		o.validate = function(section_id, value) {
-			if (section_id && value && value !== 'common') {
-
-				let ports = [];
-				for (let i of value.split(',')) {
-					if (!stubValidator.apply('port', i) && !stubValidator.apply('portrange', i))
-						return _('Expecting: %s').format(_('valid port value'));
-					if (ports.includes(i))
-						return _('Port %s alrealy exists!').format(i);
-					ports = ports.concat(i);
-				}
-			}
-
-			return true;
-		}
-
-		o = s.taboption('routing', form.ListValue, 'proxy_mode', _('Proxy mode'));
-		o.value('redirect', _('Redirect TCP'));
-		if (features.hp_has_tproxy)
-			o.value('redirect_tproxy', _('Redirect TCP + TProxy UDP'));
-		if (features.hp_has_ip_full && features.hp_has_tun) {
-			o.value('redirect_tun', _('Redirect TCP + Tun UDP'));
-			o.value('tun', _('Tun TCP/UDP'));
-		} else {
-			o.description = _('To enable Tun support, you need to install <code>ip-full</code> and <code>kmod-tun</code>');
-		}
-		o.default = 'redirect_tproxy';
-		o.rmempty = false;
-
-		o = s.taboption('routing', form.Flag, 'ipv6_support', _('IPv6 support'));
-		o.default = o.enabled;
-		o.rmempty = false;
 
 		/* Custom routing settings start */
 		/* Routing settings start */
