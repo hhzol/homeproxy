@@ -7,7 +7,7 @@
 
 'use strict';
 
-import { readfile, writefile } from 'fs';
+import { readfile, writefile, popen } from 'fs';
 import { isnan } from 'math';
 import { connect } from 'ubus';
 import { cursor } from 'uci';
@@ -419,6 +419,46 @@ function get_ruleset(cfg) {
 		push(rules, isEmpty(i) ? null : uci.get(uciconfig, i, 'label'));
 	return rules;
 }
+
+/* 获取 sing-box 版本，返回 [major, minor, patch] 或 null */
+function get_singbox_version() {
+    const f = popen('/usr/bin/sing-box version', 'r');
+    if (!f)
+        return null;
+
+    const out = f.read('all') || '';
+    f.close();
+
+    const m = match(out, /(\d+)\.(\d+)\.(\d+)/);
+    if (!m)
+        return null;
+
+    return [ int(m[1]), int(m[2]), int(m[3]) ];
+}
+
+/* 比较版本：ver >= target 返回 true；ver 为 null 时按"支持"处理 */
+function version_at_least(ver, target) {
+    if (!ver) return true;          // 检测失败，保守处理
+    if (ver[1] < target[1]) return false;
+    return true;
+}
+
+const sb_version = get_singbox_version();
+
+const version_14_plus = version_at_least(sb_version, [1, 14, 0]);
+
+let default_http_client = null;
+
+uci.foreach(uciconfig, ucihttpclient, (cfg) => {
+    if (default_http_client)
+        return;                       // 已经拿到第一个，后面的跳过
+    if (cfg.enabled === '0')
+        return;
+    if (isEmpty(cfg.label))
+        return;
+
+    default_http_client = cfg.label;
+});
 /* Config helper end */
 
 const config = {};
@@ -982,21 +1022,21 @@ if (!isEmpty(main_node)) {
 			tag: 'geoip-cn',
 			format: 'binary',
 			url: 'https://gh-proxy.com/https://raw.githubusercontent.com/1715173329/sing-geosite/heads/rule-set/geosite-cn.srs',
-			http_client: 'http1'
+			...(version_14_plus ? { http_client: default_http_client } : '')
 		});
 		push(config.route.rule_set, {
 			type: 'remote',
 			tag: 'geosite-cn',
 			format: 'binary',
 			url: 'https://gh-proxy.com/https://raw.githubusercontent.com/1715173329/sing-geosite/heads/rule-set-unstable/geosite-geolocation-cn.srs',
-			http_client: 'http1'
+			...(version_14_plus ? { http_client: default_http_client } : '')
 		});
 		push(config.route.rule_set, {
 			type: 'remote',
 			tag: 'geosite-noncn',
 			format: 'binary',
 			url: 'https://gh-proxy.com/https://raw.githubusercontent.com/1715173329/sing-geosite/heads/rule-set-unstable/geosite-geolocation-!cn.srs',
-			http_client: 'http1'
+			...(version_14_plus ? { http_client: default_http_client } : '')
 		});
 	}
 
@@ -1087,7 +1127,7 @@ if (!isEmpty(main_node)) {
 			format: cfg.format,
 			path: cfg.path,
 			url: (cfg.type === 'remote') ? cfg.url : null,
-			http_client: cfg.http_client,
+			...(version_14_plus ? { http_client: cfg.http_client} : {}),
 			update_interval: cfg.update_interval
 		});
 	});
@@ -1101,7 +1141,7 @@ if (routing_mode in ['gfwlist', 'bypass_mainland_china', 'custom']) {
 			enabled: true,
 			path: RUN_DIR + '/cache.db',
 			store_fakeip: (enable_fakeip) ? strToBool(cache_file_store_fakeip) : '',
-			store_dns: strToBool(cache_file_store_dns)
+			...(version_14_plus ? { store_dns: strToBool(cache_file_store_dns) } : {})
 		},
 		clash_api: {
 			external_controller: (enable_clash_api === '1') ? '0.0.0.0:' + external_controller : '0.0.0.0:9091',
@@ -1117,24 +1157,24 @@ if (routing_mode in ['gfwlist', 'bypass_mainland_china', 'custom']) {
 
 /* HTTP clients start */
 config.http_clients = [];
+if (version_14_plus) {
+	uci.foreach(uciconfig, ucihttpclient, (cfg) => {
+		if (cfg.enabled === '0')
+			return;
 
-uci.foreach(uciconfig, ucihttpclient, (cfg) => {
-	if (cfg.enabled === '0')
-		return;
+		if (isEmpty(cfg.label))
+			return;
 
-	if (isEmpty(cfg.label))
-		return;
-
-	push(config.http_clients, {
-		tag: cfg.label,
-		engine: cfg.engine || '',
-		version: strToInt(cfg.version),
-		headers: !isEmpty(cfg.headers) ? {
-			'User-Agent': cfg.headers
-		} : null
+		push(config.http_clients, {
+			tag: cfg.label,
+			engine: cfg.engine || '',
+			version: strToInt(cfg.version),
+			headers: !isEmpty(cfg.headers) ? {
+				'User-Agent': cfg.headers
+			} : null
+		});
 	});
-});
-
+}
 if (isEmpty(config.http_clients))
 	config.http_clients = null;
 /* HTTP clients end */
