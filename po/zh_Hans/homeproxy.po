@@ -3293,5 +3293,5 @@ msgid "Store FAKEIP"
 msgstr "保存FAKEIP"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1446
-msgid "Store DNS FAKEIP in the cache file."
+msgid "Store FAKEIP in the cache file."
 msgstr "保存FAKEIP到缓存文件"
