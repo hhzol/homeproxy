@@ -2173,7 +2173,7 @@ return view.extend({
 		so.load = function(section_id) {
 			delete this.keylist;
 			delete this.vallist;
-
+			this.value('', '-- 请选择 --');
 			uci.sections(data[0], 'http_client', (res) => {
 				if (res.enabled === '0')
 					return;
