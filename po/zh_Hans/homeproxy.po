@@ -3295,3 +3295,7 @@ msgstr "保存FAKEIP"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1446
 msgid "Store FAKEIP in the cache file."
 msgstr "保存FAKEIP到缓存文件"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:737
+msgid "Enable HomeProxy"
+msgstr "启用"
