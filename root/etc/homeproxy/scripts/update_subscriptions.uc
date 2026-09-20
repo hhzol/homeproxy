@@ -15,9 +15,116 @@ import { cursor } from 'uci';
 import { urldecode, urlencode } from 'luci.http';
 
 import {
-	wGET, decodeBase64Str, getTime, isEmpty, parseURL,
+	wGET, decodeBase64Str, getTime, isEmpty,
 	validation, HP_DIR, RUN_DIR
 } from 'homeproxy';
+
+/* ------- 修正版 parseURL：纯字符串扫描，避免正则兼容问题 ------- */
+function indexOfStr(s, needle) {
+	return index(s, needle);
+}
+
+function parseURL(url) {
+	let ret = {
+		protocol: '',
+		username: '',
+		password: '',
+		hostname: '',
+		port: '',
+		path: '',
+		search: '',
+		hash: '',
+		searchParams: {}
+	};
+
+	if (!url) return ret;
+
+	let pos;
+
+	/* 1. 拆出 hash */
+	pos = indexOfStr(url, '#');
+	if (pos >= 0) {
+		ret.hash = substr(url, pos + 1);
+		url = substr(url, 0, pos);
+	}
+
+	/* 2. 拆出 query string */
+	pos = indexOfStr(url, '?');
+	if (pos >= 0) {
+		let query = substr(url, pos + 1);
+		ret.search = '?' + query;
+		url = substr(url, 0, pos);
+
+		let pairs = split(query, '&');
+		for (let i = 0; i < length(pairs); i++) {
+			let pair = pairs[i];
+			if (!pair) continue;
+			let eq = indexOfStr(pair, '=');
+			if (eq >= 0) {
+				let k = substr(pair, 0, eq);
+				let v = substr(pair, eq + 1);
+				if (k)
+					ret.searchParams[k] = v;
+			} else {
+				ret.searchParams[pair] = '';
+			}
+		}
+	}
+
+	/* 3. 拆出 protocol */
+	pos = indexOfStr(url, '://');
+	if (pos >= 0) {
+		ret.protocol = substr(url, 0, pos);
+		url = substr(url, pos + 3);
+	} else {
+		ret.protocol = 'http';
+	}
+
+	/* 4. 拆出 path，剩下的就是 authority */
+	let authority;
+	pos = indexOfStr(url, '/');
+	if (pos >= 0) {
+		authority = substr(url, 0, pos);
+		ret.path = substr(url, pos);
+	} else {
+		authority = url;
+	}
+
+	/* 5. 拆出 user:pass@ */
+	pos = indexOfStr(authority, '@');
+	if (pos >= 0) {
+		let userInfo = substr(authority, 0, pos);
+		authority = substr(authority, pos + 1);
+		let colon = indexOfStr(userInfo, ':');
+		if (colon >= 0) {
+			ret.username = substr(userInfo, 0, colon);
+			ret.password = substr(userInfo, colon + 1);
+		} else {
+			ret.username = userInfo;
+		}
+	}
+
+	/* 6. 拆出 host:port（IPv6 用 [] 包裹） */
+	if (length(authority) > 0 && substr(authority, 0, 1) === '[') {
+		let close = indexOfStr(authority, ']');
+		if (close >= 0) {
+			ret.hostname = substr(authority, 1, close - 1);
+			if (close + 1 < length(authority) && substr(authority, close + 1, 1) === ':')
+				ret.port = substr(authority, close + 2);
+		}
+	} else {
+		let colon = indexOfStr(authority, ':');
+		if (colon >= 0) {
+			ret.hostname = substr(authority, 0, colon);
+			ret.port = substr(authority, colon + 1);
+		} else {
+			ret.hostname = authority;
+		}
+	}
+
+	return ret;
+}
+/* ------- parseURL 修正结束 ------- */
 
 /* UCI config start */
 const uci = cursor();
@@ -224,18 +331,13 @@ function parse_uri(uri) {
 					uri[1] = decodeBase64Str(ss_suri[0]) + ss_slabel;
 			}
 
-			/* Legacy format is not supported, it should be never appeared in modern subscriptions */
-			/* https://github.com/shadowsocks/shadowsocks-org/commit/78ca46cd6859a4e9475953ed34a2d301454f579e */
-
 			/* SIP002 format https://shadowsocks.org/guide/sip002.html */
 			url = parseURL('http://' + uri[1]) || {};
 
 			let ss_userinfo = {};
 			if (url.username && url.password)
-				/* User info encoded with URIComponent */
 				ss_userinfo = [url.username, urldecode(url.password)];
 			else if (url.username)
-				/* User info encoded with base64 */
 				ss_userinfo = split(decodeBase64Str(urldecode(url.username)), ':', 2);
 
 			let ss_plugin, ss_plugin_opts;
@@ -243,7 +345,6 @@ function parse_uri(uri) {
 				const ss_plugin_info = split(url.searchParams.plugin, ';', 2);
 				ss_plugin = ss_plugin_info[0];
 				if (ss_plugin === 'simple-obfs')
-					/* Fix non-standard plugin name */
 					ss_plugin = 'obfs-local';
 				ss_plugin_opts = ss_plugin_info[1];
 			}
@@ -396,7 +497,6 @@ function parse_uri(uri) {
 			if (uri.v != '2') {
 				log(sprintf('Skipping unsupported %s format.', uri[0]));
 				return null;
-			/* Unsupported protocol */
 			} else if (uri.net === 'kcp') {
 				log(sprintf('Skipping unsupported %s node: %s.', uri[0], uri.ps || uri.add));
 				return null;
@@ -407,13 +507,6 @@ function parse_uri(uri) {
 
 				return null;
 			}
-			/*
-			 * https://www.v2fly.org/config/protocols/vmess.html#vmess-md5-%E8%AE%A4%E8%AF%81%E4%BF%A1%E6%81%AF-%E6%B7%98%E6%B1%B0%E6%9C%BA%E5%88%B6
-			 * else if (uri.aid && int(uri.aid) !== 0) {
-			 * 	log(sprintf('Skipping unsupported %s node: %s.', uri[0], uri.ps || uri.add));
-			 * 	return null;
-			 * }
-			 */
 
 			config = {
 				label: uri.ps ? urldecode(uri.ps) : null,
@@ -480,7 +573,6 @@ function main() {
 	if (via_proxy !== '1') {
 		log('Stopping service...');
 		service_action('stop');
-		
 	}
 
 	for (let url in subscription_urls) {
@@ -498,7 +590,6 @@ function main() {
 		try {
 			nodes = json(res).servers || json(res);
 
-			/* Shadowsocks SIP008 format */
 			if (nodes[0].server && nodes[0].method)
 				map(nodes, (_, i) => nodes[i].nodetype = 'sip008');
 		} catch(e) {
@@ -530,7 +621,7 @@ function main() {
 					config.packet_encoding = packet_encoding;
 
 				config.grouphash = groupHash;
-				config.confhash = confHash;          // ← 新增：把配置指纹写入节点
+				config.confhash = confHash;
 				push(new_nodes, config);
 				node_cache[groupHash][confHash] = config;
 
@@ -555,7 +646,6 @@ function main() {
 		return false;
 	}
 
-	// 构建以 md5(label) 为键的新节点映射，并处理重名
 	const new_nodes_by_id = {};
 	let labelCount = {};
 
@@ -579,29 +669,23 @@ function main() {
 
 	let added = 0, removed = 0, updated = 0;
 
-	// 遍历旧节点，比对并删除集合 B，更新集合 A
 	uci.foreach(uciconfig, ucinode, (cfg) => {
-		const key = cfg['.name'];          // 旧节点的 ID = md5(label)
+		const key = cfg['.name'];
 
-		// 只处理本次更新涉及的订阅组
 		if (!node_cache[cfg.grouphash])
 			return;
 
 		if (!new_nodes_by_id[key]) {
-			// 集合 B：仅存在于旧节点中，删除
 			uci.delete(uciconfig, key);
 			removed++;
 			log(sprintf('Removing node: %s.', cfg.label || key));
 		} else {
-			// 集合 A：新旧共有
 			const new_config = new_nodes_by_id[key];
-			new_config.isExisting = true;   // 标记为已存在，后续不再添加
+			new_config.isExisting = true;
 
-			// confHash 相同则视为内容未变，直接跳过写入
 			if (cfg.confhash && cfg.confhash === new_config.confhash)
 				return;
 
-			// 先删除旧配置里存在、但新配置里没有的键（跳过 .name/.type 等内部键）
 			map(keys(cfg), (v) => {
 				if (substr(v, 0, 1) === '.')
 					return;
@@ -609,7 +693,6 @@ function main() {
 					uci.delete(uciconfig, key, v);
 			});
 
-			// 再遍历新配置的所有键：新增或覆盖
 			map(keys(new_config), (v) => {
 				if (v === 'isExisting')
 					return;
@@ -621,14 +704,12 @@ function main() {
 		}
 	});
 
-	// 添加新节点（仅添加未标记 isExisting 的）
 	for (let node_id in new_nodes_by_id) {
 		const node = new_nodes_by_id[node_id];
 
 		if (node.isExisting)
 			continue;
 
-		// 理论上此时 section 不存在，但保险起见
 		let exists = uci.get(uciconfig, node_id);
 		if (!exists)
 			uci.set(uciconfig, node_id, 'node');
@@ -657,7 +738,6 @@ function main() {
 					}
 					return true;
 				});
-				// 写回清理后的 urltest 列表
 				uci.set(uciconfig, ucimain, 'main_urltest_nodes', main_urltest_nodes);
 				uci.commit(uciconfig);
 			}
@@ -680,7 +760,6 @@ function main() {
 						}
 						return true;
 					});
-					// 写回清理后的 urltest 列表
 					uci.set(uciconfig, ucimain, 'main_udp_urltest_nodes', main_udp_urltest_nodes);
 					uci.commit(uciconfig);
 				}
