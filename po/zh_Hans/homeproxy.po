@@ -3299,3 +3299,7 @@ msgstr "保存FAKEIP到缓存文件"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:737
 msgid "Enable HomeProxy"
 msgstr "启用"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2330
+msgid "Tag of the HTTP client to download rule set."
+msgstr "下载规则集所使用的HTTP client"
