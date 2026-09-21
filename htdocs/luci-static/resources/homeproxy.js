@@ -12,7 +12,19 @@
 'require uci';
 'require ui';
 
+const callHomeProxyDownloadUI = rpc.declare({
+	object: 'luci.homeproxy',
+	method: 'download_ui',
+	params: ['url'],
+	expect: { '': {} }
+});
+
 return baseclass.extend({
+
+	downloadUI: function (url) {
+		return callHomeProxyDownloadUI(url);
+	},
+
 	dns_strategy: {
 		'': _('Default'),
 		'prefer_ipv4': _('Prefer IPv4'),
