@@ -2268,6 +2268,75 @@ return view.extend({
 		so.depends('enable_clash_api', '1');
 		so.default = 'https://gh-proxy.com/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip';
 
+		so.renderWidget = function (section_id, option_index, cfgvalue) {
+			const widget = form.Value.prototype.renderWidget.call(
+				this, section_id, option_index, cfgvalue
+			);
+
+			const input = widget.querySelector('input') || widget;
+			const button = E('button', {
+				'type': 'button',
+				'class': 'cbi-button cbi-button-action',
+				'style': 'margin-left: 5px; white-space: nowrap;'
+			}, _('Download'));
+
+			button.addEventListener('click', async () => {
+				const url = input.value.trim();
+
+				if (!url) {
+					ui.addNotification(null, E('p', _('UI Download link is empty.')), 'error');
+					return;
+				}
+
+				if (!/^https?:\/\/[^\s]+$/i.test(url)) {
+					ui.addNotification(null, E('p', _('Invalid URL.')), 'error');
+					return;
+				}
+
+				button.disabled = true;
+				button.textContent = _('Downloading...');
+
+				try {
+					const result = await hp.downloadUI(url);
+
+					if (result?.result === true) {
+						ui.addNotification(
+							null,
+							E('p', _('UI downloaded and installed successfully.')),
+							'success'
+						);
+					}
+					else {
+						ui.addNotification(
+							null,
+							E('p', result?.error || _('UI download failed.')),
+							'error'
+						);
+					}
+				}
+				catch (err) {
+					ui.addNotification(
+						null,
+						E('p', err.message || _('UI download failed.')),
+						'error'
+					);
+				}
+				finally {
+					button.disabled = false;
+					button.textContent = _('Download');
+				}
+			});
+
+			return E('div', {
+				'style': 'display: flex; align-items: center; width: 100%;'
+			}, [
+				E('div', {
+					'style': 'display: inline-block;'
+				}, [input]),
+				button
+			]);
+		};
+
 		so = ss.option(form.ListValue, 'external_ui_download_detour', _('UI Download detour'),
 			_('Default outbound will be used if empty.'));
 		so.load = function (section_id) {
