@@ -19,10 +19,21 @@ const callHomeProxyDownloadUI = rpc.declare({
 	expect: { '': {} }
 });
 
+const callHomeProxyDownloadRuleset = rpc.declare({
+    object: 'luci.homeproxy',
+    method: 'download_ruleset',
+    params: ['url', 'path'],
+    expect: { '': {} }
+});
+
 return baseclass.extend({
 
 	downloadUI: function (url) {
 		return callHomeProxyDownloadUI(url);
+	},
+
+	downloadRuleset: function (url, path) {
+		return callHomeProxyDownloadRuleset(url, path);
 	},
 
 	dns_strategy: {
