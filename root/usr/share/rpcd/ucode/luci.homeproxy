@@ -224,6 +224,39 @@ const methods = {
 		}
 	},
 
+	download_ruleset: {
+		args: {
+			url: 'url',
+			path: 'path'
+		},
+		call: function(req) {
+			const url = trim(req.args?.url || '');
+			const path = trim(req.args?.path || '');
+
+			if (!match(url, /^https?:\/\//))
+				return { result: false, error: 'illegal URL' };
+
+			if (!path)
+				return { result: false, error: 'path is empty' };
+
+			let exit_code = system(sprintf(
+				'/usr/bin/wget -T 30 -t 1 -O %s %s 2>&1',
+				shellquote(path),
+				shellquote(url)
+			), 35000);
+
+			if (exit_code !== 0)
+				return { result: false, error: 'download failed' };
+
+			const filestat = lstat(path);
+
+			if (!filestat || filestat.type !== 'file' || filestat.size <= 0)
+				return { result: false, error: 'downloaded file is empty' };
+
+			return { result: true };
+		}
+	},
+
 	log_clean: {
 		args: { type: 'type' },
 		call: function(req) {
