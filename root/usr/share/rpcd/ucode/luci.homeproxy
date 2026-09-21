@@ -141,6 +141,89 @@ const methods = {
 		}
 	},
 
+	download_ui: {
+		args: { url: 'url' },
+		call: function(req) {
+			const url = trim(req.args?.url || '');
+
+			if (!match(url, /^https?:\/\//))
+				return { result: false, error: 'illegal URL' };
+
+			const zipfile = '/tmp/homeproxy-ui.zip';
+			const uidir = `${HP_DIR}/ui`;
+			const tmpdir = `${HP_DIR}/ui.tmp`;
+
+			/* Download UI package */
+			let exit_code = system(sprintf(
+				'/usr/bin/wget -T 30 -t 1 -O %s %s 2>&1',
+				shellquote(zipfile),
+				shellquote(url)
+			), 35000);
+
+			if (exit_code !== 0) {
+				system(`rm -f ${shellquote(zipfile)}`);
+				return { result: false, error: 'download failed' };
+			}
+
+			/* Check downloaded file */
+			const filestat = lstat(zipfile);
+
+			if (!filestat || filestat.type !== 'file' || filestat.size <= 0) {
+				system(`rm -f ${shellquote(zipfile)}`);
+				return { result: false, error: 'downloaded file is empty' };
+			}
+
+			/* Prepare temporary UI directory */
+			exit_code = system(sprintf(
+				'rm -rf %s && mkdir -p %s',
+				shellquote(tmpdir),
+				shellquote(tmpdir)
+			), 5000);
+
+			if (exit_code !== 0) {
+				system(`rm -f ${shellquote(zipfile)}`);
+				return { result: false, error: 'failed to prepare UI directory' };
+			}
+
+			/* Extract UI package */
+			exit_code = system(sprintf(
+				'/usr/bin/unzip -o %s -d %s >/dev/null 2>&1',
+				shellquote(zipfile),
+				shellquote(tmpdir)
+			), 30000);
+
+			system(`rm -f ${shellquote(zipfile)}`);
+
+			if (exit_code !== 0) {
+				system(`rm -rf ${shellquote(tmpdir)}`);
+				return { result: false, error: 'extraction failed' };
+			}
+
+			/* Move dist contents to parent directory */
+			exit_code = system(sprintf(
+				'mv %s/dist/* %s/ && rmdir %s/dist',
+				shellquote(tmpdir),
+				shellquote(tmpdir),
+				shellquote(tmpdir)
+			), 5000);
+
+			if (exit_code !== 0) {
+				system(`rm -rf ${shellquote(tmpdir)}`);
+				return { result: false, error: 'failed to prepare UI files' };
+			}
+
+			/* Replace existing UI */
+			exit_code = system(sprintf(
+				'rm -rf %s && mv %s %s',
+				shellquote(uidir),
+				shellquote(tmpdir),
+				shellquote(uidir)
+			), 5000);
+
+			return { result: true };
+		}
+	},
+
 	log_clean: {
 		args: { type: 'type' },
 		call: function(req) {
