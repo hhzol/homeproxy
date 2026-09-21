@@ -2121,6 +2121,96 @@ return view.extend({
 		ss.sectiontitle = L.bind(hp.loadDefaultLabel, this, data[0]);
 		ss.renderSectionAdd = L.bind(hp.renderSectionAdd, this, ss);
 
+		ss.renderRowActions = function(section_id) {
+			const actions =
+				form.GridSection.prototype.renderRowActions.apply(this, arguments);
+
+			const type = uci.get(data[0], section_id, 'type');
+
+			const button = E('button', {
+				'type': 'button',
+				'class': 'cbi-button cbi-button-action',
+				'style': 'margin-right: 5px; display: inline-block; vertical-align: middle;'
+			}, _('Download'));
+
+			if (type !== 'local') {
+				button.disabled = true;
+				button.classList.add('disabled');
+			}
+			else {
+				button.addEventListener('click', async () => {
+					const url = uci.get(data[0], section_id, 'url');
+					const path = uci.get(data[0], section_id, 'path');
+
+					if (!url) {
+						ui.addNotification(
+							null,
+							E('p', _('Rule set URL is empty.')),
+							'error'
+						);
+						return;
+					}
+
+					if (!path) {
+						ui.addNotification(
+							null,
+							E('p', _('Rule set path is empty.')),
+							'error'
+						);
+						return;
+					}
+
+					button.disabled = true;
+					button.textContent = _('Downloading...');
+
+					try {
+						const result = await hp.downloadRuleset(url, path);
+
+						if (result?.result === true) {
+							ui.addNotification(
+								null,
+								E('p', _('Rule set downloaded successfully.')),
+								'success'
+							);
+						}
+						else {
+							ui.addNotification(
+								null,
+								E('p', result?.error || _('Rule set download failed.')),
+								'error'
+							);
+						}
+					}
+					catch (err) {
+						ui.addNotification(
+							null,
+							E('p', err.message || _('Rule set download failed.')),
+							'error'
+						);
+					}
+					finally {
+						button.disabled = false;
+						button.textContent = _('Download');
+					}
+				});
+			}
+
+			/*
+			* LuCI GridSection 的 Edit/Delete 通常位于 actions 的内部容器。
+			* 把 Download 插入到同一个容器，而不是直接插到外层。
+			*/
+			const container =
+				actions.querySelector('.cbi-section-table-cell') ||
+				actions.querySelector('.cbi-section-actions') ||
+				actions;
+
+			container.style.whiteSpace = 'nowrap';
+
+			container.insertBefore(button, container.firstChild);
+
+			return actions;
+		};
+		
 		so = ss.option(form.Value, 'label', _('Label'));
 		so.load = L.bind(hp.loadDefaultLabel, this, data[0]);
 		so.validate = L.bind(hp.validateUniqueValue, this, data[0], 'ruleset', 'label');
@@ -2150,6 +2240,70 @@ return view.extend({
 		so.depends('type', 'local');
 		so.modalonly = true;
 
+		so.load = function(section_id) {
+			const current = uci.get(data[0], section_id, 'path');
+
+			// 已经有保存的 path，就使用保存值
+			if (current)
+				return current;
+
+			// 没有 path 时，根据 url 自动生成默认路径
+			const url = uci.get(data[0], section_id, 'url');
+
+			if (url) {
+				try {
+					const pathname = new URL(url).pathname;
+					const filename = pathname.split('/').pop();
+
+					if (filename)
+						return '/etc/homeproxy/ruleset/' + filename;
+				}
+				catch (e) {
+				}
+			}
+
+			return '';
+		};
+
+		so.validate = function(section_id, value) {
+			if (!value)
+				return _('Expecting: %s').format(_('non-empty value'));
+
+			/*
+			* 只检查 type=local 的规则集
+			* 文件名相同则不允许保存
+			*/
+			const filename = value.split('/').pop();
+
+			if (!filename)
+				return _('Expecting: %s').format(_('valid file path'));
+
+			let duplicated = false;
+
+			uci.sections(data[0], 'ruleset', (res) => {
+				// 排除当前规则集
+				if (res['.name'] === section_id)
+					return;
+
+				// 只检查 local
+				if (res.type !== 'local')
+					return;
+
+				if (!res.path)
+					return;
+
+				const otherFilename = res.path.split('/').pop();
+
+				if (filename === otherFilename)
+					duplicated = true;
+			});
+
+			if (duplicated)
+				return _('File name already exists in another local rule set: %s').format(filename);
+
+			return true;
+		};
+
 		so = ss.option(form.Value, 'url', _('Rule set URL'));
 		so.validate = function(section_id, value) {
 			if (section_id) {
@@ -2169,7 +2323,6 @@ return view.extend({
 			return true;
 		}
 		so.rmempty = false;
-		so.depends('type', 'remote');
 		so.placeholder = 'https://gh-proxy.com/';
 		so.modalonly = true;
 
@@ -2193,10 +2346,6 @@ return view.extend({
 			_('Update interval of rule set.'));
 		so.placeholder = '1d';
 		so.depends('type', 'remote');
-
-		so = ss.option(form.Value, 'remark', _('Remark'));
-		so.modalonly = true;
-		so.rmempty = true;
 		/* Rule set settings end */
 
 		/* clash_api settings start */
@@ -2224,10 +2373,7 @@ return view.extend({
 
 			if (!controller)
 				return '<em>Not set</em>';
-/*
-			const apiPort =
-				controller.substring(controller.lastIndexOf(':') + 1);
-*/
+
 			const params = new URLSearchParams({
 				host: location.hostname,
 				hostname: location.hostname,
