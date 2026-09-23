@@ -1125,7 +1125,7 @@ if (!isEmpty(main_node)) {
 			type: cfg.type,
 			tag: cfg.label,
 			format: cfg.format,
-			path: cfg.path,
+			path: (cfg.type === 'local') ? cfg.path : null,
 			url: (cfg.type === 'remote') ? cfg.url : null,
 			...(version_14_plus ? { http_client: cfg.http_client} : {}),
 			update_interval: cfg.update_interval
