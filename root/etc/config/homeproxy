@@ -93,6 +93,7 @@ config homeproxy 'route_setting'
 
 config http_client 'http_client_1'
 	option label 'http1'
+	option headers 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.2903.86'
 
 config dns_server 'local'
 	option label '国内'
