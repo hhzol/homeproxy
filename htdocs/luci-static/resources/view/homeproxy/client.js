@@ -2243,65 +2243,37 @@ return view.extend({
 		so.load = function(section_id) {
 			const current = uci.get(data[0], section_id, 'path');
 
-			// 已经有保存的 path，就使用保存值
+			// 1. 如果已有保存值，直接返回
 			if (current)
 				return current;
 
-			// 没有 path 时，根据 url 自动生成默认路径
+			// 2. 如果没有保存值，尝试根据 url 计算默认 path
 			const url = uci.get(data[0], section_id, 'url');
 
-			if (url) {
+			if (url && section_id) {
 				try {
 					const pathname = new URL(url).pathname;
 					const filename = pathname.split('/').pop();
 
-					if (filename)
-						return '/etc/homeproxy/ruleset/' + filename;
+					let ext = '';
+					if (filename) {
+						const dot = filename.lastIndexOf('.');
+						if (dot > 0)
+							ext = filename.substring(dot);
+					}
+
+					const autoPath = '/etc/homeproxy/ruleset/' + section_id + ext;
+
+					// 【关键修复】显式写回 UCI 内存，确保保存时能够提交
+					uci.set(data[0], section_id, 'path', autoPath);
+
+					return autoPath;
 				}
 				catch (e) {
 				}
 			}
 
 			return '';
-		};
-
-		so.validate = function(section_id, value) {
-			if (!value)
-				return _('Expecting: %s').format(_('non-empty value'));
-
-			/*
-			* 只检查 type=local 的规则集
-			* 文件名相同则不允许保存
-			*/
-			const filename = value.split('/').pop();
-
-			if (!filename)
-				return _('Expecting: %s').format(_('valid file path'));
-
-			let duplicated = false;
-
-			uci.sections(data[0], 'ruleset', (res) => {
-				// 排除当前规则集
-				if (res['.name'] === section_id)
-					return;
-
-				// 只检查 local
-				if (res.type !== 'local')
-					return;
-
-				if (!res.path)
-					return;
-
-				const otherFilename = res.path.split('/').pop();
-
-				if (filename === otherFilename)
-					duplicated = true;
-			});
-
-			if (duplicated)
-				return _('File name already exists in another local rule set: %s').format(filename);
-
-			return true;
 		};
 
 		so = ss.option(form.Value, 'url', _('Rule set URL'));
@@ -2412,7 +2384,7 @@ return view.extend({
 		so = ss.option(form.Value, 'external_ui_download_url', _('UI Download link'),
 			_('SUGGEST: <code>https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip</code>.'));
 		so.depends('enable_clash_api', '1');
-		so.default = 'https://gh-proxy.com/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip';
+		so.default = 'https://gh.monor.com/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip';
 
 		so.renderWidget = function (section_id, option_index, cfgvalue) {
 			const widget = form.Value.prototype.renderWidget.call(
