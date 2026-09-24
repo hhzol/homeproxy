@@ -656,7 +656,7 @@ if (!isEmpty(main_node)) {
 	});
 	if (enable_fakeip === '1'){
 		push(config.dns.rules, {
-			query_type: ['A', 'AAAA'],
+
 			server: 'fakeip',
 			rewrite_ttl: 1
 		});	
