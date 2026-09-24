@@ -64,7 +64,7 @@ let main_node, main_udp_node, dedicated_udp_node,
     sniff_override, dns_server, china_dns_server, dns_default_strategy,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
     dns_client_subnet, cache_file_store_dns, cache_file_store_fakeip, gfw_domain_list, direct_domain_list,
-    proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, inserted_dns_server, domain_strategy,
+    proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, default_http_client, inserted_dns_server, domain_strategy,
 	enable_clash_api, external_controller, external_ui, external_ui_download_url, external_ui_download_detour, 
 	secret, default_mode, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip;
 
@@ -112,6 +112,7 @@ if (routing_mode !== 'custom') {
 	route_rule_select = uci.get(uciconfig, uciroutesetting, 'route_rule_select');
 	default_outbound = uci.get(uciconfig, uciroutesetting, 'default_outbound') || 'nil';
 	default_outbound_dns = uci.get(uciconfig, uciroutesetting, 'default_outbound_dns') || 'default-dns';
+	default_http_client = uci.get(uciconfig, uciroutesetting, 'http_client') || null;
 	inserted_dns_server = uci.get(uciconfig, uciroutesetting, 'server');
 	domain_strategy = uci.get(uciconfig, uciroutesetting, 'domain_strategy');
 }
@@ -447,18 +448,6 @@ const sb_version = get_singbox_version();
 
 const version_14_plus = version_at_least(sb_version, [1, 14, 0]);
 
-let default_http_client = null;
-
-uci.foreach(uciconfig, ucihttpclient, (cfg) => {
-    if (default_http_client)
-        return;                       // 已经拿到第一个，后面的跳过
-    if (cfg.enabled === '0')
-        return;
-    if (isEmpty(cfg.label))
-        return;
-
-    default_http_client = cfg.label;
-});
 /* Config helper end */
 
 const config = {};
@@ -894,7 +883,8 @@ config.route = {
 	],
 	rule_set: [],
 	auto_detect_interface: isEmpty(default_interface) ? true : false,
-	default_interface: default_interface
+	default_interface: default_interface || null,
+	...(version_14_plus ? { default_http_client: default_http_client } : '')
 };
 
 /* Routing rules */
@@ -1127,7 +1117,6 @@ if (!isEmpty(main_node)) {
 			format: cfg.format,
 			path: (cfg.type === 'local') ? cfg.path : null,
 			url: (cfg.type === 'remote') ? cfg.url : null,
-			...(version_14_plus ? { http_client: cfg.http_client} : {}),
 			update_interval: cfg.update_interval
 		});
 	});
@@ -1169,9 +1158,7 @@ if (version_14_plus) {
 			tag: cfg.label,
 			engine: cfg.engine || '',
 			version: strToInt(cfg.version),
-			headers: !isEmpty(cfg.headers) ? {
-				'User-Agent': cfg.headers
-			} : null
+			headers: !isEmpty(cfg.headers) ? {'User-Agent': cfg.headers} : null
 		});
 	});
 }
