@@ -642,7 +642,7 @@ if (!isEmpty(main_node)) {
 			outbound: get_outbound(cfg.outbound),
 			action: cfg.action,
 			server: get_resolver(cfg.server),
-			strategy: cfg.domain_strategy,
+			...(version_14_plus ? { } : {strategy: cfg.domain_strategy}),
 			disable_cache: strToBool(cfg.dns_disable_cache),
 			rewrite_ttl: strToInt(cfg.rewrite_ttl),
 			client_subnet: cfg.client_subnet,
