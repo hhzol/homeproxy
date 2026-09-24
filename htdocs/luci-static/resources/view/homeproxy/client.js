@@ -2139,7 +2139,6 @@ return view.extend({
 		so.default = 'remote';
 		so.rmempty = false;
 		so.widget = 'radio';
-		so.editable = true;
 
 		so = ss.option(form.ListValue, 'format', _('Format'));
 		so.value('binary', _('Binary file'));
