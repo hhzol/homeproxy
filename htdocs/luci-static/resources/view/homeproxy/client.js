@@ -1092,7 +1092,7 @@ return view.extend({
 			delete this.keylist;
 			delete this.vallist;
 
-			this.value('', _('-none-'));
+			this.value('', _('默认'));
 			this.value('direct-out', _('Direct'));
 			uci.sections(data[0], 'routing_node', (res) => {
 				if (res.enabled === '1')
@@ -2019,94 +2019,6 @@ return view.extend({
 		so.modalonly = true;
 		/* Routing rules end */
 
-		/* Route settings start */
-		s.tab('route_setting', _('Routing Settings'));
-		o = s.taboption('route_setting', form.SectionValue, '_route_setting', form.NamedSection, 'route_setting', 'homeproxy');
-		o.depends('routing_mode', 'custom');
-		ss = o.subsection;
-
-		so = ss.option(form.ListValue, 'default_outbound', _('Default outbound'),
-			_('Default outbound for connections not matched by any routing rules.'));
-		so.load = function(section_id) {
-			delete this.keylist;
-			delete this.vallist;
-
-			this.value('nil', _('Disable (the service)'));
-			this.value('direct-out', _('Direct'));
-			this.value('block-out', _('Block'));
-			uci.sections(data[0], 'routing_node', (res) => {
-				if (res.enabled === '1')
-					this.value(res['.name'], res.label);
-			});
-
-			return this.super('load', section_id);
-		}
-		so.default = 'nil';
-		so.rmempty = false;
-
-		so = ss.option(form.ListValue, 'default_outbound_dns', _('Default outbound DNS'),
-			_('Default DNS server for resolving domain name in the server address.'));
-		so.load = function(section_id) {
-			delete this.keylist;
-			delete this.vallist;
-
-			this.value('default-dns', _('Default DNS (issued by WAN)'));
-			this.value('system-dns', _('System DNS'));
-			uci.sections(data[0], 'dns_server', (res) => {
-				if (res.enabled === '1')
-					this.value(res.label, res.label);
-			});
-
-			return this.super('load', section_id);
-		}
-		so.default = 'default-dns';
-		so.rmempty = false;
-
-		// resolve
-		so = ss.option(form.Flag, 'resolve', _('Insert a rule of Domain Resolution'),
-			_('With such a rule improves experience of QUIC connection.'));
-
-		so.default = so.disabled;
-		so.rmempty = false;
-
-		// server
-		so = ss.option(form.ListValue, 'server', _('DNS Server'),
-			_('Defalut will leave the DNS server in blank and the final DNS server will be used eventually.'));
-		so.load = function(section_id) {
-			delete this.keylist;
-			delete this.vallist;
-			this.value('', _('Default'));
-			uci.sections(data[0], 'dns_server', (res) => {
-				if (res.enabled === '1')
-					this.value(res.label, res.label);
-			});
-
-			return this.super('load', section_id);
-		}
-		so.rmempty = true;
-		so.editable = true;
-		so.depends('resolve', '1');
-
-		// domain_strategy
-		so = ss.option(form.ListValue, 'domain_strategy', _('Domain strategy'),
-			_('Default includes both IPV4 and IPV6.'));
-		for (let i in hp.dns_strategy)
-			so.value(i, hp.dns_strategy[i]);
-		so.depends('resolve', '1');
-
-		// routing_rule select
-		so = ss.option(form.ListValue, 'route_rule_select', _('The sequence of the inserted rule'),
-			_('Insert the rule in front of the Selected rule. Default will be the first rule.'));
-		so.value('', _('Default'));
-
-		uci.sections('homeproxy', 'routing_rule', function(s) {
-			so.value(s['.name'], s.label || s['.name']);
-		});
-		so.depends('resolve', '1');
-		
-		/* Route settings end */
-		/* Custom routing settings end */
-
 		/* Rule set settings start */
 		s.tab('ruleset', _('Rule Set'));
 		o = s.taboption('ruleset', form.SectionValue, '_ruleset', form.GridSection, 'ruleset');
@@ -2226,6 +2138,8 @@ return view.extend({
 		so.value('remote', _('Remote'));
 		so.default = 'remote';
 		so.rmempty = false;
+		so.widget = 'radio';
+		so.editable = true;
 
 		so = ss.option(form.ListValue, 'format', _('Format'));
 		so.value('binary', _('Binary file'));
@@ -2298,12 +2212,61 @@ return view.extend({
 		so.placeholder = 'https://gh-proxy.com/';
 		so.modalonly = true;
 
+		so = ss.option(form.Value, 'update_interval', _('Update interval'),
+			_('Update interval of rule set.'));
+		so.placeholder = '1d';
+		so.depends('type', 'remote');
+		/* Rule set settings end */
+
+		/* Route settings start */
+		s.tab('route_setting', _('Routing Settings'));
+		o = s.taboption('route_setting', form.SectionValue, '_route_setting', form.NamedSection, 'route_setting', 'homeproxy');
+		o.depends('routing_mode', 'custom');
+		ss = o.subsection;
+
+		so = ss.option(form.ListValue, 'default_outbound', _('Default outbound'),
+			_('Default outbound for connections not matched by any routing rules.'));
+		so.load = function(section_id) {
+			delete this.keylist;
+			delete this.vallist;
+
+			this.value('nil', _('Disable (the service)'));
+			this.value('direct-out', _('Direct'));
+			this.value('block-out', _('Block'));
+			uci.sections(data[0], 'routing_node', (res) => {
+				if (res.enabled === '1')
+					this.value(res['.name'], res.label);
+			});
+
+			return this.super('load', section_id);
+		}
+		so.default = 'nil';
+		so.rmempty = false;
+
+		so = ss.option(form.ListValue, 'default_outbound_dns', _('Default outbound DNS'),
+			_('Default DNS server for resolving domain name in the server address.'));
+		so.load = function(section_id) {
+			delete this.keylist;
+			delete this.vallist;
+
+			this.value('default-dns', _('Default DNS (issued by WAN)'));
+			this.value('system-dns', _('System DNS'));
+			uci.sections(data[0], 'dns_server', (res) => {
+				if (res.enabled === '1')
+					this.value(res.label, res.label);
+			});
+
+			return this.super('load', section_id);
+		}
+		so.default = 'default-dns';
+		so.rmempty = false;
+
 		so = ss.option(form.ListValue, 'http_client', _('HTTP Client'),
 			_('Tag of the HTTP client to download rule set.'));
 		so.load = function(section_id) {
 			delete this.keylist;
 			delete this.vallist;
-			this.value('', '-- 请选择 --');
+			this.value('', '默认');
 			uci.sections(data[0], 'http_client', (res) => {
 				if (res.enabled === '0')
 					return;
@@ -2312,13 +2275,51 @@ return view.extend({
 
 			return this.super('load', section_id);
 		}
-		so.depends('type', 'remote');
 
-		so = ss.option(form.Value, 'update_interval', _('Update interval'),
-			_('Update interval of rule set.'));
-		so.placeholder = '1d';
-		so.depends('type', 'remote');
-		/* Rule set settings end */
+		// resolve
+		so = ss.option(form.Flag, 'resolve', _('Insert a rule of Domain Resolution'),
+			_('With such a rule improves experience of QUIC connection.'));
+
+		so.default = so.disabled;
+		so.rmempty = false;
+
+		// server
+		so = ss.option(form.ListValue, 'server', _('DNS Server'),
+			_('Defalut will leave the DNS server in blank and the final DNS server will be used eventually.'));
+		so.load = function(section_id) {
+			delete this.keylist;
+			delete this.vallist;
+			this.value('', _('Default'));
+			uci.sections(data[0], 'dns_server', (res) => {
+				if (res.enabled === '1')
+					this.value(res.label, res.label);
+			});
+
+			return this.super('load', section_id);
+		}
+		so.rmempty = true;
+		so.editable = true;
+		so.depends('resolve', '1');
+
+		// domain_strategy
+		so = ss.option(form.ListValue, 'domain_strategy', _('Domain strategy'),
+			_('Default includes both IPV4 and IPV6.'));
+		for (let i in hp.dns_strategy)
+			so.value(i, hp.dns_strategy[i]);
+		so.depends('resolve', '1');
+
+		// routing_rule select
+		so = ss.option(form.ListValue, 'route_rule_select', _('The sequence of the inserted rule'),
+			_('Insert the rule in front of the Selected rule. Default will be the first rule.'));
+		so.value('', _('Default'));
+
+		uci.sections('homeproxy', 'routing_rule', function(s) {
+			so.value(s['.name'], s.label || s['.name']);
+		});
+		so.depends('resolve', '1');
+		
+		/* Route settings end */
+		/* Custom routing settings end */
 
 		/* clash_api settings start */
 		s.tab('clash_api', _('Clash API'));
