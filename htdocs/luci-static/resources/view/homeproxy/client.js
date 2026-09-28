@@ -1237,13 +1237,20 @@ return view.extend({
 
 		so = ss.taboption('field_other', form.ListValue, 'action', _('Action'));
 		so.value('route', _('Route'));
+		
 		so.value('route-options', _('Route options'));
 		so.value('reject', _('Reject'));
 		so.value('predefined', _('Predefined'));
+		so.value('evaluate', _('Evaluate(Core 1.14+)'));
 		so.default = 'route';
 		so.rmempty = false;
 		so.editable = true;
 
+		so = ss.taboption('field_other', form.Flag, 'match_response', _('Match Response(Core 1.14+)'),
+			_('to use the previous evaluated result (IPs) to compare against the above selected IP ruleset(s).'));
+		so.modalonly = true;
+		so.depends('action', 'route')
+		
 		so = ss.taboption('field_other', form.ListValue, 'server', _('Server'),
 			_('Tag of the target dns server.'));
 		so.load = function(section_id) {
@@ -1262,33 +1269,34 @@ return view.extend({
 		so.rmempty = false;
 		so.editable = true;
 		so.depends('action', 'route');
+		so.depends('action', 'evaluate');
 
 		so = ss.taboption('field_other', form.ListValue, 'domain_strategy', _('Domain strategy'),
-			_('Set domain strategy for this query.'));
+			_('Core(1.14+) deprecated. Please use Default under Core(1.13) and below.'));
 		for (let i in hp.dns_strategy)
 			so.value(i, hp.dns_strategy[i]);
-		so.depends('action', 'route');
+		so.depends('match_response', '0');
 		so.modalonly = true;
 
 		so = ss.taboption('field_other', form.Flag, 'dns_disable_cache', _('Disable dns cache'),
 			_('Disable cache and save cache in this query.'));
-		so.depends('action', 'route');
 		so.depends('action', 'route-options');
+		so.depends('match_response', '0');
 		so.modalonly = true;
 
 		so = ss.taboption('field_other', form.Value, 'rewrite_ttl', _('Rewrite TTL'),
 			_('Rewrite TTL in DNS responses.'));
 		so.datatype = 'uinteger';
-		so.depends('action', 'route');
 		so.depends('action', 'route-options');
+		so.depends('match_response', '0');
 		so.modalonly = true;
 
 		so = ss.taboption('field_other', form.Value, 'client_subnet', _('EDNS Client subnet'),
 			_('Append a <code>edns0-subnet</code> OPT extra record with the specified IP prefix to every query by default.<br/>' +
 			'If value is an IP address instead of prefix, <code>/32</code> or <code>/128</code> will be appended automatically.'));
 		so.datatype = 'or(cidr, ipaddr)';
-		so.depends('action', 'route');
 		so.depends('action', 'route-options');
+		so.depends('match_response', '0');
 		so.modalonly = true;
 
 		so = ss.taboption('field_other', form.ListValue, 'reject_method', _('Method'));
