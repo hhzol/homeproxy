@@ -1247,7 +1247,7 @@ return view.extend({
 		so.editable = true;
 
 		so = ss.taboption('field_other', form.Flag, 'match_response', _('Match Response(Core 1.14+)'),
-			_('to use the previous evaluated result (IPs) to compare against the above selected IP ruleset(s).'));
+			_('to use the previous evaluated result (IPs) to compare against the above selected IP ruleset(s). If matches go ahead with resolve.'));
 		so.modalonly = true;
 		so.depends('action', 'route')
 		
