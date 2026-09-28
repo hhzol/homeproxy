@@ -3315,3 +3315,11 @@ msgstr "正式解析(内核1.14+)"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1250
 msgid "to use the previous evaluated result (IPs) to compare against the above selected IP ruleset(s). If matches go ahead with resolve."
 msgstr "将之前预解析的IP结果与选择的IP规则集比对，符合则正式解析。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2321
+msgid "Insert as First Route Rule"
+msgstr "作为第一条路由规则插入"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2326
+msgid "Insert as Last Route Rule"
+msgstr "作为最后一条路由规则插入"
