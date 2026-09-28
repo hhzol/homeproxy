@@ -1143,6 +1143,7 @@ if (!isEmpty(main_node)) {
 			format: cfg.format,
 			path: (cfg.type === 'local') ? cfg.path : null,
 			url: (cfg.type === 'remote') ? cfg.url : null,
+			outbound: version_14_plus ? '' : cfg.outbound,
 			update_interval: cfg.update_interval
 		});
 	});
