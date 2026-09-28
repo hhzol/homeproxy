@@ -1065,9 +1065,10 @@ if (!isEmpty(main_node)) {
 			clash_mode: 'global',
 			outbound: (global_outbound) ? global_outbound : 'main-out',
 		});
-	if (resolve === '1' && !route_rule_select){
+	if (resolve === '1' && route_rule_select === 'first_route_rule'){
 		push(config.route.rules, {
 			action: 'resolve',
+			server: (inserted_dns_server) ? get_resolver(inserted_dns_server) : null,
 			strategy: domain_strategy || ''
 		});
 	}
@@ -1121,6 +1122,13 @@ if (!isEmpty(main_node)) {
 			tls_record_fragment: strToBool(cfg.tls_record_fragment)
 		});
 	});
+	if (resolve === '1' && route_rule_select === 'last_route_rule'){
+		push(config.route.rules, {
+			action: 'resolve',
+			server: (inserted_dns_server) ? get_resolver(inserted_dns_server) : null,
+			strategy: domain_strategy || ''
+		});
+	}
 
 	config.route.final = get_outbound(default_outbound);
 
