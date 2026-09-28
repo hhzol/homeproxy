@@ -3310,4 +3310,8 @@ msgstr "预解析(内核1.14+)"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1249
 msgid "Match Response(Core 1.14+)"
-msgstr "符合IP规则集解析(内核1.14+)"
+msgstr "正式解析(内核1.14+)"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1250
+msgid "to use the previous evaluated result (IPs) to compare against the above selected IP ruleset(s). If matches go ahead with resolve."
+msgstr "将之前预解析的IP结果与选择的IP规则集比对，符合则正式解析。"
