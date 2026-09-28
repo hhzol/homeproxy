@@ -2318,11 +2318,12 @@ return view.extend({
 		// routing_rule select
 		so = ss.option(form.ListValue, 'route_rule_select', _('The sequence of the inserted rule'),
 			_('Insert the rule in front of the Selected rule. Default will be the first rule.'));
-		so.value('', _('Default'));
+		so.value('first_route_rule', _('Insert as First Route Rule'));
 
 		uci.sections('homeproxy', 'routing_rule', function(s) {
 			so.value(s['.name'], s.label || s['.name']);
 		});
+		so.value('last_route_rule', _('Insert as Last Route Rule'));
 		so.depends('resolve', '1');
 		
 		/* Route settings end */
