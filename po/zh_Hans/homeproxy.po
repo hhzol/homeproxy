@@ -3303,3 +3303,11 @@ msgstr "启用"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2330
 msgid "Tag of the HTTP client to download rule set."
 msgstr "下载规则集所使用的HTTP client"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1244
+msgid "Evaluate(Core 1.14+)"
+msgstr "预解析(内核1.14+)"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1249
+msgid "Match Response(Core 1.14+)"
+msgstr "符合IP规则集解析(内核1.14+)"
