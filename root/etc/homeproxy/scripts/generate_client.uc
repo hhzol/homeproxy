@@ -379,7 +379,7 @@ function get_outbound(cfg) {
 		case 'block-out':
 			return cfg;
 		case 'direct-out':
-			return '直连';
+			return '🇨🇳 直连';
 		default:
 			const node = uci.get(uciconfig, cfg, 'label');
 			if (isEmpty(node))
@@ -484,7 +484,7 @@ if (!isEmpty(ntp_server))
 	config.ntp = {
 		enabled: true,
 		server: ntp_server,
-		detour: '直连',
+		detour: '🇨🇳 直连',
 		domain_resolver: 'default-dns',
 	};
 
@@ -496,12 +496,12 @@ config.dns = {
 			tag: 'default-dns',
 			type: 'udp',
 			server: wan_dns,
-			detour: self_mark ? '直连' : null
+			detour: self_mark ? '🇨🇳 直连' : null
 		},
 		{
 			tag: 'system-dns',
 			type: 'local',
-			detour: self_mark ? '直连' : null
+			detour: self_mark ? '🇨🇳 直连' : null
 		}
 	],
 	rules: [],
@@ -556,7 +556,7 @@ if (!isEmpty(main_node)) {
 				server: 'default-dns',
 				strategy: 'prefer_ipv6'
 			},
-			detour: self_mark ? '直连' : null,
+			detour: self_mark ? '🇨🇳 直连' : null,
 			...parse_dnsserver(china_dns_server)
 		});
 		
@@ -585,7 +585,7 @@ if (!isEmpty(main_node)) {
 			return;
 
 		let outbound = get_outbound(cfg.outbound);
-		if (outbound === '直连' && isEmpty(self_mark))
+		if (outbound === '🇨🇳 直连' && isEmpty(self_mark))
 			outbound = null;
 
 		push(config.dns.servers, {
@@ -765,7 +765,7 @@ config.endpoints = [];
 config.outbounds = [
 	{
 		type: 'direct',
-		tag: '直连',
+		tag: '🇨🇳 直连',
 		routing_mark: strToInt(self_mark)
 	},
 	{
@@ -854,7 +854,7 @@ if (!isEmpty(main_node)) {
 				type: outbound_type,
 				tag: cfg.label,
 				outbounds: map(cfg.urltest_nodes, (k) =>
-					(k === 'direct-out') ? '直连' : uci.get(uciconfig, k, 'label')
+					(k === 'direct-out') ? '🇨🇳 直连' : uci.get(uciconfig, k, 'label')
 				),
 
 				/* urltest 专属 */
@@ -935,7 +935,7 @@ if (!isEmpty(main_node)) {
 	if (enable_clash_api === '1')
 		push(config.route.rules, {
 			clash_mode: 'direct',
-			outbound:  '直连',
+			outbound:  '🇨🇳 直连',
 		});
 		push(config.route.rules, {
 			clash_mode: 'global',
@@ -947,7 +947,7 @@ if (!isEmpty(main_node)) {
 		push(config.route.rules, {
 			rule_set: 'direct-domain',
 			action: 'route',
-			outbound: '直连'
+			outbound: '🇨🇳 直连'
 		});
 
 	/* Proxy list */
@@ -976,7 +976,7 @@ if (!isEmpty(main_node)) {
 			outbound: 'main-out'
 
 		});
-		config.route.final = '直连';
+		config.route.final = '🇨🇳 直连';
 	}
 
 	if (routing_mode === 'bypass_mainland_china') {
@@ -984,7 +984,7 @@ if (!isEmpty(main_node)) {
 		push(config.route.rules, {
 			rule_set: 'geosite-cn',
 			action: 'route',
-			outbound: '直连'
+			outbound: '🇨🇳 直连'
 
 		});
 		push(config.route.rules, {
@@ -1000,7 +1000,7 @@ if (!isEmpty(main_node)) {
 				}
 			],
 			action: 'route',
-			outbound: '直连'
+			outbound: '🇨🇳 直连'
 		});
 		config.route.final = 'main-out';
 	}
@@ -1078,7 +1078,7 @@ if (!isEmpty(main_node)) {
 	if (enable_clash_api === '1')
 		push(config.route.rules, {
 			clash_mode: 'direct',
-			outbound: (direct_outbound === 'direct-out') ? '直连' : direct_outbound,
+			outbound: (direct_outbound === 'direct-out') ? '🇨🇳 直连' : direct_outbound,
 		});
 		push(config.route.rules, {
 			clash_mode: 'global',
@@ -1162,7 +1162,7 @@ if (!isEmpty(main_node)) {
 			format: cfg.format,
 			path: (cfg.type === 'local') ? cfg.path : null,
 			url: (cfg.type === 'remote') ? cfg.url : null,
-			outbound: version_14_plus ? '' : cfg.outbound,
+			outbound: version_14_plus ? '' : get_outbound(cfg.outbound),
 			update_interval: cfg.update_interval
 		});
 	});
@@ -1185,7 +1185,7 @@ if (routing_mode in ['gfwlist', 'bypass_mainland_china', 'custom']) {
 			external_controller: (clash_cfg.enable_clash_api === '1') ? '0.0.0.0:' + (clash_cfg.external_controller || '9091') : '0.0.0.0:9091',
 			external_ui: clash_cfg.external_ui ? clash_cfg.external_ui : '/etc/homeproxy/ui/',
 			external_ui_download_url: clash_cfg.external_ui_download_url ? clash_cfg.external_ui_download_url : 'https://gh-proxy.org/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
-			external_ui_download_detour: (clash_cfg.external_ui_download_detour === 'direct-out') ? '直连' : clash_cfg.external_ui_download_detour,
+			external_ui_download_detour: (clash_cfg.external_ui_download_detour === 'direct-out') ? '🇨🇳 直连' : clash_cfg.external_ui_download_detour,
 			secret: (clash_cfg.secret) ? clash_cfg.secret : '123456',
 			default_mode: clash_cfg.default_mode
 		};
@@ -1206,7 +1206,7 @@ if (version_14_plus) {
 			engine: cfg.engine || '',
 			version: strToInt(cfg.version) || '',
 			headers: !isEmpty(cfg.headers) ? {'User-Agent': cfg.headers} : null,
-			detour: cfg.detour || ''
+			detour: get_outbound(cfg.detour) || ''
 		});
 	});
 }
