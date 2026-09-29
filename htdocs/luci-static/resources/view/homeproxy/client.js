@@ -1450,12 +1450,21 @@ return view.extend({
 			_('Append a <code>edns0-subnet</code> OPT extra record with the specified IP prefix to every query by default.<br/>' +
 			'If value is an IP address instead of prefix, <code>/32</code> or <code>/128</code> will be appended automatically.'));
 		so.datatype = 'or(cidr, ipaddr)';
+		so.placeholder = '0.0.0.0';
+
+		so = ss.option(form.Flag, 'enable_cache_file', _('Enable Cache File'));
+
+		so = ss.option(form.Value, 'cache_file_path', _('Cache File Path'));
+		so.placeholder = '/var/run/homeproxy/';
+		so.depends('enable_cache_file', '1');
 
 		so = ss.option(form.Flag, 'cache_file_store_fakeip', _('Store FAKEIP'),
 			_('Store FAKEIP in the cache file.'));
+		so.depends('enable_cache_file', '1');
 
 		so = ss.option(form.Flag, 'cache_file_store_dns', _('Store DNS'),
 			_('Store DNS cache in the cache file.'));
+		so.depends('enable_cache_file', '1');
 		/* DNS settings end */
 
 		/* Routing nodes start */
@@ -2364,10 +2373,10 @@ return view.extend({
 
 		o.cfgvalue = function () {
 			const controller =
-				L.uci.get('homeproxy', 'clash_api', 'external_controller')|| '9090';
+				L.uci.get('homeproxy', 'clash_api', 'external_controller')|| '9091';
 
 			const secret =
-				L.uci.get('homeproxy', 'clash_api', 'secret') || '';
+				L.uci.get('homeproxy', 'clash_api', 'secret') || '123456';
 
 			if (!controller)
 				return '<em>Not set</em>';
@@ -2394,8 +2403,8 @@ return view.extend({
 
 		so = ss.option(form.Value, 'external_controller', _('External Controller'),
 			_('RESTful web API listening port.'));
-		so.rmempty = false;
-		so.default = '9090';
+		so.rmempty = true;
+		so.placeholder = '9091';
 		so.depends('enable_clash_api', '1');
 
 		so = ss.option(form.Value, 'secret', _('Secret'),
@@ -2405,6 +2414,7 @@ return view.extend({
 		so = ss.option(form.Value, 'external_ui', _('External UI Path'),
 			_('An absolute path for the UI static web resource.'));
 		so.default = '/etc/homeproxy/ui/';
+		so.placeholder = '默认值：“123456”';
 		so.depends('enable_clash_api', '1');
 
 		so = ss.option(form.Value, 'external_ui_download_url', _('UI Download link'),
