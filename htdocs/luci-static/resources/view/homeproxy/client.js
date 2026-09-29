@@ -1849,7 +1849,7 @@ return view.extend({
 			delete this.keylist;
 			delete this.vallist;
 
-			this.value('直连', _('Direct'));
+			this.value('direct-out', _('Direct'));
 			uci.sections(data[0], 'routing_node', (res) => {
 				if (res.enabled === '1')
 					this.value(res['.name'], res.label);
@@ -2235,7 +2235,7 @@ return view.extend({
 			delete this.vallist;
 
 			this.value('', _('Default'));
-			this.value('直连', _('Direct'));
+			this.value('direct-out', _('Direct'));
 			uci.sections(data[0], 'routing_node', (res) => {
 				if (res.enabled === '1')
 					this.value(res['.name'], res.label);
