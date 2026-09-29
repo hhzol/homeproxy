@@ -2192,7 +2192,7 @@ return view.extend({
 							ext = filename.substring(dot);
 					}
 
-					const autoPath = '/etc/homeproxy/ruleset/' + section_id + ext;
+					const autoPath = '/etc/homeproxy/' + section_id + ext;
 
 					// 【关键修复】显式写回 UCI 内存，确保保存时能够提交
 					uci.set(data[0], section_id, 'path', autoPath);
