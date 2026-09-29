@@ -65,8 +65,7 @@ let main_node, main_udp_node, dedicated_udp_node,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
     dns_client_subnet, cache_file_store_dns, cache_file_store_fakeip, gfw_domain_list, direct_domain_list,
     proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, default_http_client, inserted_dns_server, domain_strategy,
-	enable_clash_api, external_controller, external_ui, external_ui_download_url, external_ui_download_detour, 
-	secret, default_mode, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip;
+	enable_clash_api, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip;
 
 if (routing_mode !== 'custom') {
 	main_node = uci.get(uciconfig, ucimain, 'main_node') || 'nil';
@@ -117,14 +116,8 @@ if (routing_mode !== 'custom') {
 	domain_strategy = uci.get(uciconfig, uciroutesetting, 'domain_strategy');
 }
 sniff_override = uci.get(uciconfig, uciroutingsetting, 'sniff_override');
-/* Clash API */
+/* Clash Mode */
 enable_clash_api = uci.get(uciconfig, uciclash, 'enable_clash_api') || '0';
-external_controller = uci.get(uciconfig, uciclash, 'external_controller');
-external_ui = uci.get(uciconfig, uciclash, 'external_ui');
-external_ui_download_url = uci.get(uciconfig, uciclash, 'external_ui_download_url');
-external_ui_download_detour = uci.get(uciconfig, uciclash, 'external_ui_download_detour');
-secret = uci.get(uciconfig, uciclash, 'secret');
-default_mode = uci.get(uciconfig, uciclash, 'default_mode');
 global_outbound = uci.get(uciconfig, uciclash, 'global_outbound');
 direct_outbound = uci.get(uciconfig, uciclash, 'direct_outbound');
 global_dns = uci.get(uciconfig, uciclash, 'global_dns');
@@ -421,31 +414,57 @@ function get_ruleset(cfg) {
 	return rules;
 }
 
-/* 获取 sing-box 版本，返回 [major, minor, patch] 或 null */
+/* 获取 sing-box 版本，返回 [major, minor, patch] 或 null, 优先走 ubus（与 LuCI app 完全一致），失败再回退到 popen */
 function get_singbox_version() {
-    const f = popen('/usr/bin/sing-box version', 'r');
-    if (!f)
-        return null;
+    /* ---------- 1. 与 LuCI app 一致：ubus -> rpcd -> sing-box version ---------- */
+    let verstr = null;
+    try {
+        const features = ubus.call('luci.homeproxy', 'singbox_get_features');
+        if (features && !isEmpty(features.version))
+            verstr = features.version;
+    } catch (e) {
+        /* rpcd 未运行 / 未装 luci-app-homeproxy 时会抛异常，忽略，走 fallback */
+    }
 
-    const out = f.read('all') || '';
-    f.close();
+    /* ---------- 2. 回退：直接执行 sing-box version ---------- */
+    if (!verstr) {
+        const f = popen('/usr/bin/sing-box version', 'r');
+        if (!f)
+            return null;
 
-    const m = match(out, /(\d+)\.(\d+)\.(\d+)/);
+        const out = f.read('all') || '';
+        f.close();
+
+        const m = match(out, /(\d+)\.(\d+)\.(\d+)/);
+        if (!m)
+            return null;
+
+        return [ int(m[1]), int(m[2]), int(m[3]) ];
+    }
+
+    /* ---------- 3. 解析版本字符串：兼容 v1.14.0 / 1.14.0-beta.1 ---------- */
+    const m = match(verstr, /(\d+)\.(\d+)\.(\d+)/);
     if (!m)
         return null;
 
     return [ int(m[1]), int(m[2]), int(m[3]) ];
 }
 
-/* 比较版本：ver >= target 返回 true；ver 为 null 时按"支持"处理 */
+/* 逐段比较版本：ver >= target 返回 true；ver 为 null 时按"支持"处理 */
 function version_at_least(ver, target) {
-    if (!ver) return true;          // 检测失败，保守处理
-    if (ver[1] < target[1]) return false;
+    if (!ver)
+        return true;
+
+    for (let i = 0; i < target.length; i++) {
+        let a = ver[i] || 0;
+        let b = target[i] || 0;
+        if (a < b) return false;
+        if (a > b) return true;
+    }
     return true;
 }
 
 const sb_version = get_singbox_version();
-
 const version_14_plus = version_at_least(sb_version, [1, 14, 0]);
 
 /* Config helper end */
@@ -1152,22 +1171,25 @@ if (!isEmpty(main_node)) {
 
 /* Experimental start */
 if (routing_mode in ['gfwlist', 'bypass_mainland_china', 'custom']) {
-	config.experimental = {
-		cache_file: {
-			enabled: true,
-			path: RUN_DIR + '/cache.db',
-			store_fakeip: (enable_fakeip) ? strToBool(cache_file_store_fakeip) : '',
-			...(version_14_plus ? { store_dns: strToBool(cache_file_store_dns) } : {})
-		},
-		clash_api: {
-			external_controller: (enable_clash_api === '1') ? '0.0.0.0:' + external_controller : '0.0.0.0:9091',
-			external_ui: (external_ui) ? external_ui : '/etc/homeproxy/ui/',
-			external_ui_download_url: (external_ui_download_url) ? external_ui_download_url : 'https://gh.monlor.com/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
-			external_ui_download_detour: (external_ui_download_detour === 'direct-out') ? '直连' : external_ui_download_detour,
-			secret: secret,
-			default_mode: default_mode
-		}
-	};
+    config.experimental = {};
+    const dns_cfg = uci.get_all(uciconfig, ucidnssetting) || {};
+    config.experimental.cache_file = {
+        enabled: (dns_cfg.enable_cache_file === '1'),
+        path: dns_cfg.cache_file_path ? dns_cfg.cache_file_path + '/cache.db' : RUN_DIR + '/cache.db',
+        store_fakeip: (dns_cfg.fakeip === '1') ? strToBool(dns_cfg.cache_file_store_fakeip) : '',
+        ...(version_14_plus ? { store_dns: strToBool(dns_cfg.cache_file_store_dns) } : {})
+    };
+	if (enable_clash_api === '1') {
+		const clash_cfg = uci.get_all(uciconfig, uciclash) || {};
+		config.experimental.clash_api = {
+			external_controller: (clash_cfg.enable_clash_api === '1') ? '0.0.0.0:' + (clash_cfg.external_controller || '9091') : '0.0.0.0:9091',
+			external_ui: clash_cfg.external_ui ? clash_cfg.external_ui : '/etc/homeproxy/ui/',
+			external_ui_download_url: clash_cfg.external_ui_download_url ? clash_cfg.external_ui_download_url : 'https://gh-proxy.org/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip',
+			external_ui_download_detour: (clash_cfg.external_ui_download_detour === 'direct-out') ? '直连' : clash_cfg.external_ui_download_detour,
+			secret: (clash_cfg.secret) ? clash_cfg.secret : '123456',
+			default_mode: clash_cfg.default_mode
+		};
+	}
 }
 /* Experimental end */
 
@@ -1177,10 +1199,8 @@ if (version_14_plus) {
 	uci.foreach(uciconfig, ucihttpclient, (cfg) => {
 		if (cfg.enabled === '0')
 			return;
-
 		if (isEmpty(cfg.label))
 			return;
-
 		push(config.http_clients, {
 			tag: cfg.label,
 			engine: cfg.engine || '',
