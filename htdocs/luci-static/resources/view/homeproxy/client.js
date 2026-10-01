@@ -768,6 +768,16 @@ return view.extend({
 			return true;
 		}
 
+		o = s.taboption('routing', form.Flag, 'ipv6_support', _('IPv6 support'));
+		o.default = o.enabled;
+		o.rmempty = false;
+
+    
+		o = s.taboption('routing', form.Flag, 'bypass_cn_traffic', _('Bypass CN traffic'),
+			_('Bypass mainland China traffic via firewall rules by default.'));
+		o.rmempty = false;
+
+    
 		o = s.taboption('routing', form.ListValue, 'proxy_mode', _('Proxy mode'));
 		o.value('redirect', _('Redirect TCP'));
 		if (features.hp_has_tproxy)
@@ -779,10 +789,6 @@ return view.extend({
 			o.description = _('To enable Tun support, you need to install <code>ip-full</code> and <code>kmod-tun</code>');
 		}
 		o.default = 'redirect_tproxy';
-		o.rmempty = false;
-
-		o = s.taboption('routing', form.Flag, 'ipv6_support', _('IPv6 support'));
-		o.default = o.enabled;
 		o.rmempty = false;
 
 		o = s.taboption('routing', form.ListValue, 'main_node', _('Main node'));
@@ -928,9 +934,6 @@ return view.extend({
 		o.depends('routing_mode', 'custom');
 
 		ss = o.subsection;
-		so = ss.option(form.Flag, 'bypass_cn_traffic', _('Bypass CN traffic'),
-			_('Bypass mainland China traffic via firewall rules by default.'));
-		so.rmempty = false;
 
 		so = ss.option(form.ListValue, 'tcpip_stack', _('TCP/IP stack'),
 			_('TCP/IP stack.'));
