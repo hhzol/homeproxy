@@ -1454,10 +1454,6 @@ return view.extend({
 
 		so = ss.option(form.Flag, 'enable_cache_file', _('Enable Cache File'));
 
-		so = ss.option(form.Value, 'cache_file_path', _('Cache File Path'));
-		so.placeholder = '/var/run/homeproxy/';
-		so.depends('enable_cache_file', '1');
-
 		so = ss.option(form.Flag, 'cache_file_store_fakeip', _('Store FAKEIP'),
 			_('Store FAKEIP in the cache file.'));
 		so.depends('enable_cache_file', '1');
@@ -2069,7 +2065,7 @@ return view.extend({
 			else {
 				button.addEventListener('click', async () => {
 					const url = uci.get(data[0], section_id, 'url');
-					const path = uci.get(data[0], section_id, 'path');
+					const filename = uci.get(data[0], section_id, 'filename');
 
 					if (!url) {
 						ui.addNotification(
@@ -2080,14 +2076,25 @@ return view.extend({
 						return;
 					}
 
-					if (!path) {
+					if (!filename) {
 						ui.addNotification(
 							null,
-							E('p', _('Rule set path is empty.')),
+							E('p', _('Rule set filename is empty.')),
 							'error'
 						);
 						return;
 					}
+
+					/*
+					 * local ruleset 只保存 filename，
+					 * 完整路径由 route_setting.ruleset_path + filename 生成。
+					 */
+					const rulesetPath =
+						uci.get(data[0], 'route_setting', 'ruleset_path') ||
+						'/etc/homeproxy/';
+
+					const path =
+						rulesetPath.replace(/\/+$/, '') + '/' + filename;
 
 					button.disabled = true;
 					button.textContent = _('Downloading...');
@@ -2125,9 +2132,9 @@ return view.extend({
 			}
 
 			/*
-			* LuCI GridSection 的 Edit/Delete 通常位于 actions 的内部容器。
-			* 把 Download 插入到同一个容器，而不是直接插到外层。
-			*/
+			 * LuCI GridSection 的 Edit/Delete 通常位于 actions 的内部容器。
+			 * 把 Download 插入到同一个容器，而不是直接插到外层。
+			 */
 			const container =
 				actions.querySelector('.cbi-section-table-cell') ||
 				actions.querySelector('.cbi-section-actions') ||
@@ -2139,7 +2146,7 @@ return view.extend({
 
 			return actions;
 		};
-		
+
 		so = ss.option(form.Value, 'label', _('Label'));
 		so.load = L.bind(hp.loadDefaultLabel, this, data[0]);
 		so.validate = L.bind(hp.validateUniqueValue, this, data[0], 'ruleset', 'label');
@@ -2163,47 +2170,82 @@ return view.extend({
 		so.default = 'binary';
 		so.rmempty = false;
 
-		so = ss.option(form.Value, 'path', _('Path'));
-		so.datatype = 'file';
-		so.placeholder = '/etc/homeproxy/ruleset/example.json';
+		/*
+		 * Local ruleset 只保存文件名，不保存完整路径。
+		 *
+		 * 例如：
+		 *   filename = cn.srs
+		 *
+		 * 实际路径：
+		 *   route_setting.ruleset_path + filename
+		 *
+		 * 如果：
+		 *   ruleset_path = /etc/homeproxy/
+		 *
+		 * 则实际路径：
+		 *   /etc/homeproxy/cn.srs
+		 */
+		so = ss.option(form.Value, 'filename', _('Filename'));
+		so.placeholder = 'example.srs';
 		so.rmempty = false;
 		so.depends('type', 'local');
 		so.modalonly = true;
 
 		so.load = function(section_id) {
-			const current = uci.get(data[0], section_id, 'path');
+			const current = uci.get(data[0], section_id, 'filename');
 
 			// 1. 如果已有保存值，直接返回
 			if (current)
 				return current;
 
-			// 2. 如果没有保存值，尝试根据 url 计算默认 path
+			// 2. 没有保存值时：
+			//    使用 section_id + URL 文件扩展名作为默认文件名
 			const url = uci.get(data[0], section_id, 'url');
+
+			let filename = section_id || '';
 
 			if (url && section_id) {
 				try {
 					const pathname = new URL(url).pathname;
-					const filename = pathname.split('/').pop();
+					const sourceFilename = pathname.split('/').pop();
 
 					let ext = '';
-					if (filename) {
-						const dot = filename.lastIndexOf('.');
+
+					if (sourceFilename) {
+						const dot = sourceFilename.lastIndexOf('.');
+
 						if (dot > 0)
-							ext = filename.substring(dot);
+							ext = sourceFilename.substring(dot);
 					}
 
-					const autoPath = '/etc/homeproxy/' + section_id + ext;
-
-					// 【关键修复】显式写回 UCI 内存，确保保存时能够提交
-					uci.set(data[0], section_id, 'path', autoPath);
-
-					return autoPath;
+					filename = section_id + ext;
 				}
 				catch (e) {
 				}
 			}
 
-			return '';
+			/*
+			 * 关键：
+			 * 将自动生成的默认 filename 写入 UCI 内存，
+			 * 这样点击 Save 时才能真正保存到 UCI。
+			 */
+			if (filename)
+				uci.set(data[0], section_id, 'filename', filename);
+
+			return filename;
+		};
+
+		so.validate = function(section_id, value) {
+			if (!value)
+				return _('Expecting: %s').format(_('non-empty value'));
+
+			/*
+			 * filename 只允许文件名，不允许携带路径。
+			 */
+			if (value.includes('/') || value.includes('\\'))
+				return _('Filename must not contain path separators.');
+
+			return true;
 		};
 
 		so = ss.option(form.Value, 'url', _('Rule set URL'));
@@ -2214,6 +2256,7 @@ return view.extend({
 
 				try {
 					let url = new URL(value);
+
 					if (!url.hostname)
 						return _('Expecting: %s').format(_('valid URL'));
 				}
@@ -2223,7 +2266,7 @@ return view.extend({
 			}
 
 			return true;
-		}
+		};
 		so.rmempty = false;
 		so.placeholder = 'https://gh-proxy.org/';
 		so.modalonly = true;
@@ -2236,19 +2279,21 @@ return view.extend({
 
 			this.value('', _('Default'));
 			this.value('direct-out', _('Direct'));
+
 			uci.sections(data[0], 'routing_node', (res) => {
 				if (res.enabled === '1')
 					this.value(res['.name'], res.label);
 			});
 
 			return this.super('load', section_id);
-		}
+		};
 		so.depends('type', 'remote');
 
 		so = ss.option(form.Value, 'update_interval', _('Update interval'),
 			_('Update interval of rule set.'));
 		so.placeholder = '1d';
 		so.depends('type', 'remote');
+
 		/* Rule set settings end */
 
 		/* Route settings start */
@@ -2308,6 +2353,10 @@ return view.extend({
 
 			return this.super('load', section_id);
 		}
+
+		so = ss.option(form.Value, 'ruleset_path', _('Rule Set Path'),
+			_('The path to the Rule Set file. Default will be <code>/etc/homeproxy/</code>.'));
+		so.placeholder = '/etc/homeproxy/';
 
 		// resolve
 		so = ss.option(form.Flag, 'resolve', _('Insert a rule of Domain Resolution'),
