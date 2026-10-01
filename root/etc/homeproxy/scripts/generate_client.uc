@@ -39,7 +39,7 @@ const ucidnssetting = 'dns',
 const uciroutingsetting = 'routing',
       uciroutingnode = 'routing_node',
       uciroutingrule = 'routing_rule',
-	    uciroutesetting = 'route_setting';
+	  uciroutesetting = 'route_setting';
 
 const ucihttpclient = 'http_client';
 
@@ -63,7 +63,7 @@ const autoroute = uci.get(uciconfig, uciroutingsetting, 'autoroute');
 let main_node, main_udp_node, dedicated_udp_node,
     sniff_override, dns_server, china_dns_server, dns_default_strategy,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
-    dns_client_subnet, cache_file_store_dns, cache_file_store_fakeip, gfw_domain_list, direct_domain_list,
+    dns_client_subnet, cache_file_store_dns, cache_file_store_fakeip, gfw_domain_list, direct_domain_list, ruleset_path,
     proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, default_http_client, inserted_dns_server, domain_strategy,
 	enable_clash_api, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip;
 
@@ -105,13 +105,16 @@ if (routing_mode !== 'custom') {
 	dns_client_subnet = uci.get(uciconfig, ucidnssetting, 'client_subnet');
 	cache_file_store_dns = uci.get(uciconfig, ucidnssetting, 'cache_file_store_dns');
 	cache_file_store_fakeip = uci.get(uciconfig, ucidnssetting, 'cache_file_store_fakeip');
-	/* Routing settings */
 	enable_fakeip = uci.get(uciconfig, ucidnssetting, 'fakeip');
+	/* Routing settings */
 	resolve = uci.get(uciconfig, uciroutesetting, 'resolve');
 	route_rule_select = uci.get(uciconfig, uciroutesetting, 'route_rule_select');
 	default_outbound = uci.get(uciconfig, uciroutesetting, 'default_outbound') || 'nil';
 	default_outbound_dns = uci.get(uciconfig, uciroutesetting, 'default_outbound_dns') || 'default-dns';
 	default_http_client = uci.get(uciconfig, uciroutesetting, 'http_client') || null;
+	ruleset_path = uci.get(uciconfig, uciroutesetting, 'ruleset_path') || '/etc/homeproxy/';
+	if (substr(ruleset_path, -1) != '/')
+		ruleset_path += '/';
 	inserted_dns_server = uci.get(uciconfig, uciroutesetting, 'server');
 	domain_strategy = uci.get(uciconfig, uciroutesetting, 'domain_strategy');
 }
@@ -1338,7 +1341,7 @@ if (!isEmpty(main_node)) {
 			type: cfg.type,
 			tag: cfg.label,
 			format: cfg.format,
-			path: (cfg.type === 'local') ? cfg.path : null,
+			path: (cfg.type === 'local') ? ruleset_path + cfg.filename : null,
 			url: (cfg.type === 'remote') ? cfg.url : null,
 			outbound: version_14_plus ? '' : get_outbound(cfg.outbound),
 			update_interval: cfg.update_interval
@@ -1353,7 +1356,7 @@ if (routing_mode in ['gfwlist', 'bypass_mainland_china', 'custom']) {
     const dns_cfg = uci.get_all(uciconfig, ucidnssetting) || {};
     config.experimental.cache_file = {
         enabled: (dns_cfg.enable_cache_file === '1'),
-        path: dns_cfg.cache_file_path ? dns_cfg.cache_file_path + '/cache.db' : RUN_DIR + '/cache.db',
+        path: RUN_DIR + '/cache.db',
         store_fakeip: (dns_cfg.fakeip === '1') ? strToBool(dns_cfg.cache_file_store_fakeip) : '',
         ...(version_14_plus ? { store_dns: strToBool(dns_cfg.cache_file_store_dns) } : {})
     };
