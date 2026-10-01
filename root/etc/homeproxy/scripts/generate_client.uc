@@ -839,74 +839,252 @@ if (!isEmpty(main_node)) {
 		}
 	}
 } else if (!isEmpty(default_outbound)) {
-	let urltest_nodes = [],
-	    routing_nodes = [];
 
-	uci.foreach(uciconfig, uciroutingnode, (cfg) => {
-		if (cfg.enabled !== '1')
-			return;
+    let urltest_nodes = [],
+        routing_nodes = [];
 
-		if (cfg.node === 'urltest' || cfg.node === 'selector') {
+    /*
+     * Routing nodes
+     */
+    uci.foreach(uciconfig, uciroutingnode, (cfg) => {
 
-			let outbound_type = cfg.node;
+        if (cfg.enabled !== '1')
+            return;
 
-			push(config.outbounds, {
-				type: outbound_type,
-				tag: cfg.label,
-				outbounds: map(cfg.urltest_nodes, (k) =>
-					(k === 'direct-out') ? '🇨🇳 直连' : uci.get(uciconfig, k, 'label')
-				),
+        /*
+         * selector / urltest
+         */
+        if (cfg.node === 'urltest' || cfg.node === 'selector') {
 
-				/* urltest 专属 */
-				url: (outbound_type === 'urltest') ? cfg.urltest_url : null,
-				interval: (outbound_type === 'urltest') ? strToTime(cfg.urltest_interval) : null,
-				tolerance: (outbound_type === 'urltest') ? strToInt(cfg.urltest_tolerance) : null,
-				idle_timeout: (outbound_type === 'urltest') ? strToTime(cfg.urltest_idle_timeout) : null,
-				interrupt_exist_connections:
-					(outbound_type === 'urltest')
-						? strToBool(cfg.urltest_interrupt_exist_connections)
-						: null,
+            let outbound_type = cfg.node;
 
-				/* selector 专属 */
-				default: (cfg.default_outbound && outbound_type === 'selector') ? get_outbound(cfg.default_outbound) : null
+            const selector_outbounds = map(cfg.urltest_nodes, (k) =>
+                (k === 'direct-out') ? '🇨🇳 直连' : uci.get(uciconfig, k, 'label')
+            );
 
-			});
+            let default_outbound_value = null;
 
-		} else {
-			const outbound = uci.get_all(uciconfig, cfg.node) || {};
-			if (outbound.type === 'wireguard') {
-				push(config.endpoints, generate_endpoint(outbound));
-				config.endpoints[length(config.endpoints)-1].bind_interface = cfg.bind_interface;
-				config.endpoints[length(config.endpoints)-1].detour = get_outbound(cfg.outbound);
-				if (cfg.domain_resolver)
-					config.endpoints[length(config.endpoints)-1].domain_resolver = {
-						server: get_resolver(cfg.domain_resolver),
-						strategy: cfg.domain_strategy
-					};
-			} else {
-				push(config.outbounds, generate_outbound(outbound));
-				config.outbounds[length(config.outbounds)-1].bind_interface = cfg.bind_interface;
-				config.outbounds[length(config.outbounds)-1].detour = get_outbound(cfg.outbound);
-				if (cfg.domain_resolver)
-					config.outbounds[length(config.outbounds)-1].domain_resolver = {
-						server: get_resolver(cfg.domain_resolver),
-						strategy: cfg.domain_strategy
-					};
-			}
-			push(routing_nodes, cfg.node);
-		}
-	});
-	uci.foreach(uciconfig, ucinode, (cfg) => {
-		if (cfg.type === 'wireguard') {
-			push(config.endpoints, generate_endpoint(cfg));
-		} else {
-			push(config.outbounds, generate_outbound(cfg));
-		}
-	});
+            /*
+             * selector 的 default 先按照当前 selector 的成员检查一次
+             */
+            if (cfg.default_outbound && outbound_type === 'selector') {
 
+                const default_outbound = get_outbound(cfg.default_outbound);
 
+                for (let i = 0; i < length(selector_outbounds); i++) {
+
+                    if (selector_outbounds[i] === default_outbound) {
+
+                        default_outbound_value = default_outbound;
+
+                        break;
+                    }
+                }
+            }
+
+            push(config.outbounds, {
+
+                type: outbound_type,
+
+                tag: cfg.label,
+
+                outbounds: selector_outbounds,
+
+                /*
+                 * urltest 专属
+                 */
+                url: (outbound_type === 'urltest') ? cfg.urltest_url : null,
+
+                interval: (outbound_type === 'urltest')
+                    ? strToTime(cfg.urltest_interval)
+                    : null,
+
+                tolerance: (outbound_type === 'urltest')
+                    ? strToInt(cfg.urltest_tolerance)
+                    : null,
+
+                idle_timeout: (outbound_type === 'urltest')
+                    ? strToTime(cfg.urltest_idle_timeout)
+                    : null,
+
+                interrupt_exist_connections:
+                    (outbound_type === 'urltest')
+                        ? strToBool(cfg.urltest_interrupt_exist_connections)
+                        : null,
+
+                /*
+                 * selector 专属
+                 */
+                default: default_outbound_value
+            });
+
+        } else {
+
+            /*
+             * 普通 node
+             */
+            const outbound = uci.get_all(uciconfig, cfg.node) || {};
+
+            if (outbound.type === 'wireguard') {
+
+                push(config.endpoints, generate_endpoint(outbound));
+
+                config.endpoints[length(config.endpoints) - 1].bind_interface =
+                    cfg.bind_interface;
+
+                config.endpoints[length(config.endpoints) - 1].detour =
+                    get_outbound(cfg.outbound);
+
+                if (cfg.domain_resolver)
+
+                    config.endpoints[length(config.endpoints) - 1].domain_resolver = {
+
+                        server: get_resolver(cfg.domain_resolver),
+
+                        strategy: cfg.domain_strategy
+                    };
+
+            } else {
+
+                push(config.outbounds, generate_outbound(outbound));
+
+                config.outbounds[length(config.outbounds) - 1].bind_interface =
+                    cfg.bind_interface;
+
+                config.outbounds[length(config.outbounds) - 1].detour =
+                    get_outbound(cfg.outbound);
+
+                if (cfg.domain_resolver)
+
+                    config.outbounds[length(config.outbounds) - 1].domain_resolver = {
+
+                        server: get_resolver(cfg.domain_resolver),
+
+                        strategy: cfg.domain_strategy
+                    };
+            }
+
+            /*
+             * 记录已经通过 routing_node 加入的 node
+             */
+            let already_exists = false;
+
+            for (let i = 0; i < length(routing_nodes); i++) {
+
+                if (routing_nodes[i] === cfg.node) {
+
+                    already_exists = true;
+
+                    break;
+                }
+            }
+
+            if (!already_exists)
+                push(routing_nodes, cfg.node);
+        }
+    });
+
+    /*
+     * 补充没有出现在 routing_node 中的普通 node
+     *
+     * 注意：
+     * 已经通过 routing_node 加入的节点不能再次加入，
+     * 否则会产生：
+     *
+     * duplicate outbound/endpoint tag
+     */
+    uci.foreach(uciconfig, ucinode, (cfg) => {
+
+        let already_routing_node = false;
+
+        for (let i = 0; i < length(routing_nodes); i++) {
+
+            if (routing_nodes[i] === cfg['.name']) {
+
+                already_routing_node = true;
+
+                break;
+            }
+        }
+
+        if (already_routing_node)
+            return;
+
+        if (cfg.type === 'wireguard') {
+
+            push(config.endpoints, generate_endpoint(cfg));
+
+        } else {
+
+            push(config.outbounds, generate_outbound(cfg));
+        }
+    });
+
+    /*
+     * 清理 selector / urltest 中不存在的 outbound
+     *
+     * selector/urltest 的 outbounds 必须存在于最终
+     * config.outbounds 中。
+     */
+    let valid_outbound_tags = {};
+
+    for (let i = 0; i < length(config.outbounds); i++) {
+
+        const tag = config.outbounds[i].tag;
+
+        if (!isEmpty(tag))
+            valid_outbound_tags[tag] = true;
+    }
+
+    /*
+     * 过滤 selector / urltest 的成员
+     */
+    for (let i = 0; i < length(config.outbounds); i++) {
+
+        const outbound = config.outbounds[i];
+
+        if (outbound.type !== 'selector' &&
+            outbound.type !== 'urltest')
+            continue;
+
+        let valid_selector_outbounds = [];
+
+        for (let j = 0; j < length(outbound.outbounds); j++) {
+
+            const tag = outbound.outbounds[j];
+
+            if (!isEmpty(tag) && valid_outbound_tags[tag])
+                push(valid_selector_outbounds, tag);
+        }
+
+        outbound.outbounds = valid_selector_outbounds;
+
+        /*
+         * selector 的 default 也必须存在于过滤后的
+         * outbounds 中。
+         */
+        if (outbound.type === 'selector' &&
+            !isEmpty(outbound.default)) {
+
+            let default_valid = false;
+
+            for (let j = 0;
+                 j < length(valid_selector_outbounds);
+                 j++) {
+
+                if (valid_selector_outbounds[j] === outbound.default) {
+
+                    default_valid = true;
+
+                    break;
+                }
+            }
+
+            if (!default_valid)
+                outbound.default = null;
+        }
+    }
 }
-
 if (isEmpty(config.endpoints))
 	config.endpoints = null;
 /* Outbound end */
