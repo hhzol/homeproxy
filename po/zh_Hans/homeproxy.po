@@ -3300,9 +3300,21 @@ msgstr "保存FAKEIP到缓存文件"
 msgid "Enable HomeProxy"
 msgstr "启用"
 
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2329
+msgid "Default HTTP Client"
+msgstr "默认HTTP客户端"
+
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2330
 msgid "Tag of the HTTP client to download rule set."
-msgstr "下载规则集所使用的HTTP client"
+msgstr "下载规则集所使用的HTTP客户端"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2368
+msgid "Rule Set Path"
+msgstr "规则集路径"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2369
+msgid "The path to the Rule Set file. Default will be <code>/etc/homeproxy/</code>."
+msgstr "规则集存放路径，默认为<code>/etc/homeproxy/</code>。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1244
 msgid "Evaluate(Core 1.14+)"
