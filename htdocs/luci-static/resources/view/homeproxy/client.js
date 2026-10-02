@@ -457,13 +457,21 @@ function openOutboundManager(section_id, nodeList, displayMap) {
         E('p', _('Select a node for this group:')),
 
         // 下拉选择
-        E('select', { id: 'node-selector', style: 'width:100%; margin-bottom:12px;' },
-            nodeList.map(id => E('option', {
-                value: id,
-                selected: (id === defaultOutbound) ? 'selected' : undefined
-            }, displayMap[id] || id))
-        ),
+        E('select', { id: 'node-selector', style: 'width:100%; margin-bottom:12px;' }, [
 
+            // 空选项：表示不设置默认 outbound
+            E('option', {
+                value: '',
+                selected: (!defaultOutbound) ? 'selected' : null
+            }, _('Default')),
+
+            // 节点列表
+            ...nodeList.map(id => E('option', {
+                value: id,
+                selected: (id === defaultOutbound) ? 'selected' : null
+            }, displayMap[id] || id))
+
+        ]),
         // 确认按钮
         E('button', {
             class: 'cbi-button cbi-button-action',
