@@ -2350,7 +2350,7 @@ return view.extend({
 		so.default = 'default-dns';
 		so.rmempty = false;
 
-		so = ss.option(form.ListValue, 'http_client', _('HTTP Client'),
+		so = ss.option(form.ListValue, 'http_client', _('Default HTTP Client'),
 			_('Tag of the HTTP client to download rule set.'));
 		so.load = function(section_id) {
 			delete this.keylist;
