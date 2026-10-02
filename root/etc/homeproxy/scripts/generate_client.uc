@@ -613,13 +613,10 @@ if (!isEmpty(main_node)) {
 		let fakeip_server = {
 			tag: 'fakeip',
 			type: 'fakeip',
-			inet4_range: '198.18.0.0/15'
+			inet4_range: '198.18.0.0/15',
+			inet6_range: (ipv6_support === '1') ? 'fc00::/18' : null,
 		};
-	
-		if (ipv6_support === '1') {
-			fakeip_server.inet6_range = 'fc00::/18';
-		}
-	
+
 		push(config.dns.servers, fakeip_server);
 	}
 	/* DNS rules */
