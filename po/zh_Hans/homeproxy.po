@@ -512,7 +512,10 @@ msgstr "默认服务器名称"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1382
 #: htdocs/luci-static/resources/view/homeproxy/node.js:428
 msgid "Direct"
-msgstr "直连"
+msgstr "🇨🇳 直连"
+
+msgid "direct-out"
+msgstr "🇨🇳 直连"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:1514
 msgid "Direct Domain List"
