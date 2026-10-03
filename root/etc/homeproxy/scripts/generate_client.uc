@@ -1383,7 +1383,7 @@ if (version_14_plus) {
 			tag: cfg.label,
 			engine: cfg.engine || '',
 			version: strToInt(cfg.version) || '',
-			headers: !isEmpty(cfg.headers) ? {'User-Agent': cfg.headers} : null,
+			headers: !isEmpty(cfg.ua) ? {'User-Agent': cfg.ua} : null,
 			detour: get_outbound(cfg.detour) || ''
 		});
 	});
