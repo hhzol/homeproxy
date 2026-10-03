@@ -112,6 +112,11 @@ if (routing_mode !== 'custom') {
 	default_outbound = uci.get(uciconfig, uciroutesetting, 'default_outbound') || 'nil';
 	default_outbound_dns = uci.get(uciconfig, uciroutesetting, 'default_outbound_dns') || 'default-dns';
 	default_http_client = uci.get(uciconfig, uciroutesetting, 'http_client') || null;
+	if (default_http_client) {
+		const enabled = uci.get(uciconfig, ucihttpclient, default_http_client, 'enabled');
+		if (enabled === '0')
+			default_http_client = null;
+	}
 	ruleset_path = uci.get(uciconfig, uciroutesetting, 'ruleset_path') || '/etc/homeproxy/';
 	if (substr(ruleset_path, -1) != '/')
 		ruleset_path += '/';
