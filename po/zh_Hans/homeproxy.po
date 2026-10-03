@@ -3309,7 +3309,7 @@ msgstr "默认HTTP客户端"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2330
 msgid "Tag of the HTTP client to download rule set."
-msgstr "下载规则集所使用的HTTP客户端"
+msgstr "下载规则集所使用的HTTP客户端，默认为空"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2368
 msgid "Rule Set Path"
