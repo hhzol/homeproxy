@@ -2625,6 +2625,17 @@ return view.extend({
 
 		/* HTTP clients start */
 		s.tab('http_client', _('HTTP Clients'));
+
+		/* Notice */
+		o = s.taboption('http_client', form.DummyValue, '_http_client_notice');
+		o.rawhtml = true;
+		o.cfgvalue = function() {
+			return E('div', {
+				'class': 'cbi-section-descr',
+				'style': 'margin-left: 0px; font-size: 14px;'
+			}, _('<code>HTTP Clients are applicable for Core 1.14 and above only.</code>'));
+		};
+
 		o = s.taboption('http_client', form.SectionValue, '_http_client', form.GridSection, 'http_client');
 
 		ss = o.subsection;
