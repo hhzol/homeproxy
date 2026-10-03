@@ -3283,19 +3283,23 @@ msgstr "默认将<code>域名解析DNS</code>留空，最终将使用<code>默�
 msgid "Download Mobile Json"
 msgstr "手机专用配置"
 
-#: htdocs/luci-static/resources/view/homeproxy/client.js:1441
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1466
+msgid "Enable Cache File"
+msgstr "启用缓存文件"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1472
 msgid "Store DNS"
 msgstr "保存DNS缓存"
 
-#: htdocs/luci-static/resources/view/homeproxy/client.js:1442
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1473
 msgid "Store DNS cache in the cache file."
 msgstr "保存DNS缓存到缓存文件"
 
-#: htdocs/luci-static/resources/view/homeproxy/client.js:1445
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1468
 msgid "Store FAKEIP"
 msgstr "保存FAKEIP"
 
-#: htdocs/luci-static/resources/view/homeproxy/client.js:1446
+#: htdocs/luci-static/resources/view/homeproxy/client.js:1469
 msgid "Store FAKEIP in the cache file."
 msgstr "保存FAKEIP到缓存文件"
 
@@ -3338,3 +3342,15 @@ msgstr "作为第一条路由规则插入"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2326
 msgid "Insert as Last Route Rule"
 msgstr "作为最后一条路由规则插入"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2627
+msgid "HTTP Clients"
+msgstr "HTTP客户端"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2649
+msgid "Engine"
+msgstr "系统"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2655
+msgid "Version"
+msgstr "版本"
