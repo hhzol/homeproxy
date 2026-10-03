@@ -2480,7 +2480,7 @@ return view.extend({
 		so = ss.option(form.Value, 'external_ui_download_url', _('UI Download link'),
 			_('SUGGEST: <code>https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip</code>.'));
 		so.depends('enable_clash_api', '1');
-		so.default = 'https://gh.monor.com/https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip';
+		so.default = 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist-no-fonts.zip';
 
 		so.renderWidget = function (section_id, option_index, cfgvalue) {
 			const widget = form.Value.prototype.renderWidget.call(
@@ -2622,7 +2622,66 @@ return view.extend({
 		so.depends('enable_clash_api', '1');
 		so.readonly = true;
 		/* clash_api settings end */
-		
+
+		/* HTTP clients start */
+		s.tab('http_client', _('HTTP Clients'));
+		o = s.taboption('http_client', form.SectionValue, '_http_client', form.GridSection, 'http_client');
+
+		ss = o.subsection;
+		ss.addremove = true;
+		ss.rowcolors = true;
+		ss.sortable = true;
+		ss.nodescriptions = true;
+		ss.modaltitle = L.bind(hp.loadModalTitle, this, _('HTTP Client'), _('Add an HTTP Client'), data[0]);
+		ss.sectiontitle = L.bind(hp.loadDefaultLabel, this, data[0]);
+		ss.renderSectionAdd = L.bind(hp.renderSectionAdd, this, ss);
+
+		so = ss.option(form.Value, 'label', _('Label'));
+		so.load = L.bind(hp.loadDefaultLabel, this, data[0]);
+		so.validate = L.bind(hp.validateUniqueValue, this, data[0], 'http_client', 'label');
+		so.modalonly = true;
+
+		so = ss.option(form.Flag, 'enabled', _('Enable'));
+		so.default = so.enabled;
+		so.rmempty = false;
+		so.editable = true;
+
+		so = ss.option(form.ListValue, 'engine', _('Engine'));
+		so.value('', 'Default');
+		so.value('go', 'Go');
+		so.value('apple', 'Apple');
+		so.rmempty = true;
+
+		so = ss.option(form.Value, 'version', _('Version'));
+		so.value('', 'Default');
+		so.value('1', '1');
+		so.value('2', '2');
+		so.value('3', '3');
+		so.rmempty = true;
+		so.editable = true;
+
+		so = ss.option(form.Value, 'ua', _('User-Agent'));
+		so.rmempty = true;
+		so.editable = true;
+
+		so = ss.option(form.Value, 'detour', _('Outbound'));
+		so.load = function(section_id) {
+			delete this.keylist;
+			delete this.vallist;
+
+			this.value('', _('Default'));
+			this.value('direct-out', _('Direct'));
+			uci.sections(data[0], 'routing_node', (res) => {
+				if (res.enabled === '1')
+					this.value(res['.name'], res.label);
+			});
+
+			return this.super('load', section_id);
+		}
+		so.rmempty = false;
+		so.editable = true;
+		/* HTTP clients end */
+
 		/* ACL settings start */
 		s.tab('control', _('Access Control'));
 
