@@ -3347,6 +3347,10 @@ msgstr "作为最后一条路由规则插入"
 msgid "HTTP Clients"
 msgstr "HTTP客户端"
 
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2627
+msgid "<code>HTTP Clients are applicable for Core 1.14 and above only.</code>"
+msgstr "<code>HTTP客户端仅适用于核心1.14及以上。</code>"
+
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2649
 msgid "Engine"
 msgstr "系统"
