@@ -2676,11 +2676,11 @@ return view.extend({
 		so.editable = true;
 
 		so = ss.option(form.Value, 'detour', _('Outbound'));
+
 		so.load = function(section_id) {
 			delete this.keylist;
 			delete this.vallist;
-
-			this.value('', _('Default'));
+			this.value('null', _('-none-'));
 			this.value('direct-out', _('Direct'));
 			uci.sections(data[0], 'routing_node', (res) => {
 				if (res.enabled === '1')
