@@ -2658,13 +2658,13 @@ return view.extend({
 		so.editable = true;
 
 		so = ss.option(form.ListValue, 'engine', _('Engine'));
-		so.value('', 'Default');
+		so.value('', '-none-');
 		so.value('go', 'Go');
 		so.value('apple', 'Apple');
 		so.rmempty = true;
 
 		so = ss.option(form.Value, 'version', _('Version'));
-		so.value('', 'Default');
+		so.value('', '-none-');
 		so.value('1', '1');
 		so.value('2', '2');
 		so.value('3', '3');
