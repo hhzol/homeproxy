@@ -391,7 +391,7 @@ function get_outbound(cfg) {
 		default:
 			const node = uci.get(uciconfig, cfg, 'label');
 			if (isEmpty(node))
-				return cfg;
+				return null;
 			else
 				return node;
 		}
