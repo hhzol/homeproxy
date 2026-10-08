@@ -2210,7 +2210,6 @@ return view.extend({
 			_('Please fill in the file name <code>(*.srs or *.json)</code> so as to download the ruleset.'));
 		so.placeholder = 'example.srs';
 		so.rmempty = false;
-		so.depends('type', 'local');
 
 		so = ss.option(form.ListValue, 'outbound', _('Outbound'),
 			_('Tag of the outbound to download rule set.'));
