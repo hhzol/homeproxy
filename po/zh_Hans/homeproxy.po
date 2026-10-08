@@ -3366,3 +3366,7 @@ msgstr "启用本地规则集"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2371
 msgid "Please download the rule set files first."
 msgstr "请先下载规则集。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2210
+msgid "Please fill in the file name <code>(*.srs or *.json)</code> so as to download the ruleset."
+msgstr "请输入文件名<code>(*.srs or *.json)</code>以下载规则集。"
