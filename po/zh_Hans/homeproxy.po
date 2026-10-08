@@ -3177,7 +3177,7 @@ msgstr "密码"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2119
 msgid "ALWAYS set a secret for security!"
-msgstr "安全起见请记得设置密码。"
+msgstr "密码为空时，将自动生成密码。"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2122
 msgid "External UI Path"
