@@ -2168,7 +2168,7 @@ return view.extend({
 		so.rmempty = false;
 		so.editable = true;
 
-		so = ss.option(form.HiddenValue, 'type', _('Type'));
+		so = ss.option(form.HiddenValue, 'type');
 		so.load = function(section_id) {
 			return uci.get(data[0], 'route_setting', 'local_ruleset') === '1'
 				? 'local'
