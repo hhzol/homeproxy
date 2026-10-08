@@ -65,7 +65,7 @@ let main_node, main_udp_node, dedicated_udp_node,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
     dns_client_subnet, cache_file_store_dns, cache_file_store_fakeip, gfw_domain_list, direct_domain_list, ruleset_path,
     proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, default_http_client, inserted_dns_server, domain_strategy,
-	enable_clash_api, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip;
+	enable_clash_api, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip, local_ruleset;
 
 if (routing_mode !== 'custom') {
 	main_node = uci.get(uciconfig, ucimain, 'main_node') || 'nil';
@@ -122,6 +122,7 @@ if (routing_mode !== 'custom') {
 		ruleset_path += '/';
 	inserted_dns_server = uci.get(uciconfig, uciroutesetting, 'server');
 	domain_strategy = uci.get(uciconfig, uciroutesetting, 'domain_strategy');
+	local_ruleset = uci.get(uciconfig, uciroutesetting, 'local_ruleset');
 }
 sniff_override = uci.get(uciconfig, uciroutingsetting, 'sniff_override');
 /* Clash Mode */
@@ -1339,14 +1340,16 @@ if (!isEmpty(main_node)) {
 		if (cfg.enabled !== '1')
 			return null;
 
+		const ruleset_type = (local_ruleset === '1') ? 'local' : 'remote';
+
 		push(config.route.rule_set, {
-			type: cfg.type,
+			type: ruleset_type,
 			tag: cfg.label,
 			format: cfg.format,
-			path: (cfg.type === 'local') ? ruleset_path + cfg.filename : null,
-			url: (cfg.type === 'remote') ? cfg.url : null,
-			outbound: version_14_plus ? '' : get_outbound(cfg.outbound),
-			update_interval: cfg.update_interval
+			path: (ruleset_type === 'local') ? ruleset_path + cfg.filename : null,
+			url: (ruleset_type === 'remote') ? cfg.url : null,
+			...(version_14_plus ? {outbound: (ruleset_type === 'remote') ? cfg.outbound : null} : ''),
+			update_interval: (ruleset_type === 'remote') ? cfg.update_interval : null
 		});
 	});
 }
