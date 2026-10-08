@@ -2479,7 +2479,7 @@ return view.extend({
 		
 		so.depends('enable_clash_api', '1');
 		so.password = true;
-		so.rmempty = false;
+		so.rmempty = true;
 		
 		so.load = function(section_id) {
 			let secret = L.uci.get('homeproxy', 'clash_api', 'secret');
