@@ -2182,65 +2182,6 @@ return view.extend({
 		so.default = 'binary';
 		so.rmempty = false;
 
-		/*
-		 * Local ruleset 只保存文件名，不保存完整路径。
-		 *
-		 * 例如：
-		 *   filename = cn.srs
-		 *
-		 * 实际路径：
-		 *   route_setting.ruleset_path + filename
-		 *
-		 * 如果：
-		 *   ruleset_path = /etc/homeproxy/
-		 *
-		 * 则实际路径：
-		 *   /etc/homeproxy/cn.srs
-		 */
-		so = ss.option(form.Value, 'filename', _('Filename'));
-		so.placeholder = 'example.srs';
-		so.rmempty = false;
-		so.depends('type', 'local');
-
-		so.cfgvalue = function(section_id) {
-			const current = uci.get(data[0], section_id, 'filename');
-
-			if (current)
-				return current;
-
-			const url = uci.get(data[0], section_id, 'url');
-
-			let filename = section_id || '';
-
-			if (url && section_id) {
-				const cleanUrl = url.split('?')[0].split('#')[0];
-
-				const sourceFilename = cleanUrl.substring(
-					cleanUrl.lastIndexOf('/') + 1
-				);
-
-				const dot = sourceFilename.lastIndexOf('.');
-
-				if (dot > 0 && dot < sourceFilename.length - 1) {
-					const ext = sourceFilename.substring(dot);
-					filename = section_id + ext;
-				}
-			}
-
-			return filename;
-		};
-		so.validate = function(section_id, value) {
-			if (!value)
-				return _('Expecting: %s').format(_('non-empty value'));
-
-			/*
-			 * filename 只允许文件名，不允许携带路径。
-			 */
-			if (value.includes('/') || value.includes('\\'))
-				return _('Filename must not contain path separators.');
-
-			return true;
-		};
 
 		so = ss.option(form.Value, 'url', _('Rule set URL'));
 		so.validate = function(section_id, value) {
@@ -2264,6 +2205,12 @@ return view.extend({
 		so.rmempty = false;
 		so.placeholder = 'https://gh-proxy.org/';
 		so.editable = true;
+
+		so = ss.option(form.Value, 'filename', _('Filename'),
+			_('Please fill in the file name <code>(*.srs or *.json)</code> so as to download the ruleset.'));
+		so.placeholder = 'example.srs';
+		so.rmempty = false;
+		so.depends('type', 'local');
 
 		so = ss.option(form.ListValue, 'outbound', _('Outbound'),
 			_('Tag of the outbound to download rule set.'));
