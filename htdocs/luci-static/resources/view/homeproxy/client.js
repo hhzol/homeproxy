@@ -2443,8 +2443,8 @@ return view.extend({
 				L.uci.get('homeproxy', 'clash_api', 'external_controller')|| '9091';
 
 			const secret =
-				L.uci.get('homeproxy', 'clash_api', 'secret') || '123456';
-
+				L.uci.get('homeproxy', 'clash_api', 'secret')|| '';
+					
 			if (!controller)
 				return '<em>Not set</em>';
 
@@ -2476,12 +2476,28 @@ return view.extend({
 
 		so = ss.option(form.Value, 'secret', _('Secret'),
 			_('ALWAYS set a secret for security!'));
+		
 		so.depends('enable_clash_api', '1');
+		so.password = true;
+		so.rmempty = false;
+		
+		so.load = function(section_id) {
+			let secret = L.uci.get('homeproxy', 'clash_api', 'secret');
+		
+			if (!secret) {
+				secret = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+					.map(b => b.toString(16).padStart(2, '0'))
+					.join('');
+		
+				L.uci.set('homeproxy', 'clash_api', 'secret', secret);
+			}
+		
+			return secret;
+		};
 
 		so = ss.option(form.Value, 'external_ui', _('External UI Path'),
 			_('An absolute path for the UI static web resource.'));
 		so.default = '/etc/homeproxy/ui/';
-		so.placeholder = '默认值：“123456”';
 		so.depends('enable_clash_api', '1');
 
 		so = ss.option(form.Value, 'external_ui_download_url', _('UI Download link'),
