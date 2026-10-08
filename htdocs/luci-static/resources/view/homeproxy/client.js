@@ -2200,7 +2200,6 @@ return view.extend({
 		so = ss.option(form.Value, 'filename', _('Filename'));
 		so.placeholder = 'example.srs';
 		so.rmempty = false;
-		so.modalonly = true;
 		so.depends('type', 'local');
 
 		so.load = function(section_id) {
@@ -2281,7 +2280,7 @@ return view.extend({
 		};
 		so.rmempty = false;
 		so.placeholder = 'https://gh-proxy.org/';
-		so.modalonly = true;
+		so.editable = true;
 
 		so = ss.option(form.ListValue, 'outbound', _('Outbound'),
 			_('Tag of the outbound to download rule set.'));
