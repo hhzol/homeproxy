@@ -2174,7 +2174,8 @@ return view.extend({
 				? 'local'
 				: 'remote';
 		};		
-
+		so.modalonly = true;
+		
 		so = ss.option(form.ListValue, 'format', _('Format'));
 		so.value('binary', _('Binary file'));
 		so.value('source', _('Source file'));
