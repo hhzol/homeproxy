@@ -3358,3 +3358,11 @@ msgstr "系统"
 #: htdocs/luci-static/resources/view/homeproxy/client.js:2655
 msgid "Version"
 msgstr "版本"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2370
+msgid "Enable Local Rule Set"
+msgstr "启用本地规则集"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js:2371
+msgid "Please download the rule set files first."
+msgstr "请先下载规则集。"
