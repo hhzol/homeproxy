@@ -2202,28 +2202,23 @@ return view.extend({
 		so.rmempty = false;
 		so.depends('type', 'local');
 
-		so.load = function(section_id) {
+		so.cfgvalue = function(section_id) {
 			const current = uci.get(data[0], section_id, 'filename');
 
-			// 1. 如果已有保存值，直接返回
 			if (current)
 				return current;
 
-			// 2. 没有保存值时，根据 URL 的扩展名生成默认文件名
 			const url = uci.get(data[0], section_id, 'url');
 
 			let filename = section_id || '';
 
 			if (url && section_id) {
-				// 去掉 ?query 和 #fragment
 				const cleanUrl = url.split('?')[0].split('#')[0];
 
-				// 取 URL 最后一个路径部分
 				const sourceFilename = cleanUrl.substring(
 					cleanUrl.lastIndexOf('/') + 1
 				);
 
-				// 提取扩展名
 				const dot = sourceFilename.lastIndexOf('.');
 
 				if (dot > 0 && dot < sourceFilename.length - 1) {
@@ -2234,7 +2229,6 @@ return view.extend({
 
 			return filename;
 		};
-
 		so.validate = function(section_id, value) {
 			if (!value)
 				return _('Expecting: %s').format(_('non-empty value'));
