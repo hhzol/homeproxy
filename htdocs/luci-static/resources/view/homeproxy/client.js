@@ -2209,39 +2209,28 @@ return view.extend({
 			if (current)
 				return current;
 
-			// 2. 没有保存值时：
-			//    使用 section_id + URL 文件扩展名作为默认文件名
+			// 2. 没有保存值时，根据 URL 的扩展名生成默认文件名
 			const url = uci.get(data[0], section_id, 'url');
 
 			let filename = section_id || '';
 
 			if (url && section_id) {
-				try {
-					const pathname = new URL(url).pathname;
-					const sourceFilename = pathname.split('/').pop();
+				// 去掉 ?query 和 #fragment
+				const cleanUrl = url.split('?')[0].split('#')[0];
 
-					let ext = '';
+				// 取 URL 最后一个路径部分
+				const sourceFilename = cleanUrl.substring(
+					cleanUrl.lastIndexOf('/') + 1
+				);
 
-					if (sourceFilename) {
-						const dot = sourceFilename.lastIndexOf('.');
+				// 提取扩展名
+				const dot = sourceFilename.lastIndexOf('.');
 
-						if (dot > 0)
-							ext = sourceFilename.substring(dot);
-					}
-
+				if (dot > 0 && dot < sourceFilename.length - 1) {
+					const ext = sourceFilename.substring(dot);
 					filename = section_id + ext;
 				}
-				catch (e) {
-				}
 			}
-
-			/*
-			 * 关键：
-			 * 将自动生成的默认 filename 写入 UCI 内存，
-			 * 这样点击 Save 时才能真正保存到 UCI。
-			 */
-			if (filename)
-				uci.set(data[0], section_id, 'filename', filename);
 
 			return filename;
 		};
