@@ -2061,7 +2061,7 @@ return view.extend({
 			const actions =
 				form.GridSection.prototype.renderRowActions.apply(this, arguments);
 
-			const type = uci.get(data[0], section_id, 'type');
+			const local_ruleset = uci.get(data[0], 'route_setting', 'local_ruleset');
 
 			const button = E('button', {
 				'type': 'button',
@@ -2069,7 +2069,7 @@ return view.extend({
 				'style': 'margin-right: 5px; display: inline-block; vertical-align: middle;'
 			}, _('Download'));
 
-			if (type !== 'local') {
+			if (local_ruleset !== '1') {
 				button.disabled = true;
 				button.classList.add('disabled');
 			}
@@ -2168,12 +2168,12 @@ return view.extend({
 		so.rmempty = false;
 		so.editable = true;
 
-		so = ss.option(form.ListValue, 'type', _('Type'));
-		so.value('local', _('Local'));
-		so.value('remote', _('Remote'));
-		so.default = 'remote';
-		so.rmempty = false;
-		so.widget = 'radio';
+		so = ss.option(form.HiddenValue, 'type', _('Type'));
+		so.load = function(section_id) {
+			return uci.get(data[0], 'route_setting', 'local_ruleset') === '1'
+				? 'local'
+				: 'remote';
+		};		
 
 		so = ss.option(form.ListValue, 'format', _('Format'));
 		so.value('binary', _('Binary file'));
@@ -2199,8 +2199,8 @@ return view.extend({
 		so = ss.option(form.Value, 'filename', _('Filename'));
 		so.placeholder = 'example.srs';
 		so.rmempty = false;
-		so.depends('type', 'local');
 		so.modalonly = true;
+		so.depends('type', 'local');
 
 		so.load = function(section_id) {
 			const current = uci.get(data[0], section_id, 'filename');
@@ -2299,11 +2299,13 @@ return view.extend({
 			return this.super('load', section_id);
 		};
 		so.depends('type', 'remote');
+		so.modalonly = true;
 
 		so = ss.option(form.Value, 'update_interval', _('Update interval'),
 			_('Update interval of rule set.'));
 		so.placeholder = '1d';
 		so.depends('type', 'remote');
+		so.modalonly = true;
 
 		/* Rule set settings end */
 
@@ -2365,14 +2367,19 @@ return view.extend({
 			return this.super('load', section_id);
 		}
 
+		so = ss.option(form.Flag, 'local_ruleset', _('Enable Local Rule Set'),
+			_('Please download the rule set files first.'));
+		so.default = so.disabled;
+		so.rmempty = false;
+
 		so = ss.option(form.Value, 'ruleset_path', _('Rule Set Path'),
 			_('The path to the Rule Set file. Default will be <code>/etc/homeproxy/</code>.'));
 		so.placeholder = '/etc/homeproxy/';
+		so.depends('local_ruleset', '1');
 
 		// resolve
 		so = ss.option(form.Flag, 'resolve', _('Insert a rule of Domain Resolution'),
 			_('With such a rule improves experience of QUIC connection.'));
-
 		so.default = so.disabled;
 		so.rmempty = false;
 
