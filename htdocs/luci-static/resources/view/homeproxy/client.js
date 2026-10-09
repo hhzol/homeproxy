@@ -25,6 +25,13 @@ const callServiceList = rpc.declare({
 	expect: { '': {} }
 });
 
+const callRCInit = rpc.declare({
+    object: 'rc',
+    method: 'init',
+    params: ['name', 'action'],
+    expect: { '': {} }
+});
+
 const callReadDomainList = rpc.declare({
 	object: 'luci.homeproxy',
 	method: 'acllist_read',
@@ -551,38 +558,94 @@ return view.extend({
 		);
 
 		// =======================
-		// 状态栏 Section
+		// 状态栏 Section（仅状态显示，单独一行）
 		// =======================
+
 		s = m.section(form.TypedSection);
 		s.render = function () {
 			poll.add(function () {
 				return L.resolveDefault(getServiceStatus()).then((res) => {
 					let view = document.getElementById('service_status');
-					view.innerHTML = renderStatus(res, features.version);
+
+					if (view)
+						view.innerHTML = renderStatus(res, features.version);
 				});
 			});
 
-			return E('div', { class: 'cbi-section', id: 'status_bar' }, [
-					E('p', { id: 'service_status' }, _('Collecting data...'))
+			return E('div', {
+				'class': 'cbi-section',
+				'id': 'status_bar',
+				'style': 'display: flex; align-items: center; flex-wrap: wrap;'
+			}, [
+				E('p', {
+					'id': 'service_status',
+					'style': 'margin: 0;'
+				}, _('Collecting data...'))
 			]);
-		}
+		};
 		
+		// =======================
+		// 操作按钮 Section（Reload / Restart / Download x2 一行）
+		// =======================
 		let dl = m.section(form.TypedSection);
 
 		dl.render = function () {
 
-			return E('div', { class: 'cbi-section' }, [
+			/* 通用的 init action 按钮工厂 */
+			function makeInitBtn(label, action, busyLabel) {
+				return E('button', {
+					'class': 'cbi-button cbi-button-action',
+					'click': function (ev) {
+						const btn = ev.target;
+						if (btn.disabled)
+							return;
+
+						btn.disabled = true;
+						btn.textContent = _(busyLabel);
+
+						return callRCInit('homeproxy', action)
+							.then(function () {
+								ui.addNotification(
+									null,
+									E('p', _('HomeProxy %s request completed.').format(action)),
+									'info'
+								);
+							})
+							.catch(function (err) {
+								console.error('HomeProxy ' + action + ' failed:', err);
+								ui.addNotification(
+									null,
+									E('p', _('Failed to %s HomeProxy: ').format(action) + err),
+									'error'
+								);
+							})
+							.finally(function () {
+								btn.disabled = false;
+								btn.textContent = _(label);
+							});
+					}
+				}, _(label));
+			}
+
+			return E('div', {
+				class: 'cbi-section',
+				style: 'display: flex; align-items: center; flex-wrap: wrap; gap: 8px;'
+			}, [
+				makeInitBtn('Reload',  'reload',  'Reloading...'),
+				makeInitBtn('Restart', 'restart', 'Restarting...'),
+
 				E('button', {
 					id: 'download_config_btn',
 					class: 'cbi-button cbi-button-action'
 				}, _('Download runtime json file')),
-				' ',
+
 				E('button', {
 					id: 'download_mobile_btn',
 					class: 'cbi-button cbi-button-action'
 				}, _('Download Mobile Json'))
 			]);
 		};
+
 		poll.add(function () {
 
 			/* ============================================================
