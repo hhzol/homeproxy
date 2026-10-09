@@ -1203,21 +1203,38 @@ return view.extend({
 
 			let btns = tdEl.querySelector('div');
 
-			btns.insertBefore(
-				E('button', {
-					'class': 'cbi-button cbi-button-action',
-					click: ui.createHandlerFn(this, function() {
+			// 在 tdEl 范围内找排序手柄
+			let handle =
+				tdEl.querySelector('.cbi-sortable-handle') ||
+				tdEl.querySelector('.cbi-drag-handle') ||
+				tdEl.querySelector('[class*="sortable"]') ||
+				tdEl.querySelector('[class*="drag-handle"]');
 
-						openRuleSetManager(
-							section_id,
-							data[0],
-							this.map
-						);
+			let button = E('button', {
+				'class': 'cbi-button cbi-button-action',
+				'style': 'margin-right: 5px; vertical-align: middle;',
+				click: ui.createHandlerFn(this, function() {
+					openRuleSetManager(
+						section_id,
+						data[0],
+						this.map
+					);
+				})
+			}, _('Rule Sets'));
 
-					})
-				}, _('Rule Sets')),
-				btns.firstChild
-			);
+			if (handle && handle.parentNode === tdEl) {
+				// 手柄在 tdEl 层、btns 外：插到 btns 之前（视觉上就在手柄后面）
+				tdEl.insertBefore(button, btns);
+			}
+			else if (handle && handle.parentNode === btns) {
+				// 手柄在 btns 里：插到手柄后面
+				btns.insertBefore(button, handle.nextSibling);
+			}
+			else {
+				// 没找到手柄：退回插到 btns 最前
+				btns.insertBefore(button, btns.firstChild);
+			}
+
 			return tdEl;
 		};
 
@@ -1553,10 +1570,10 @@ return view.extend({
 		ss.renderSectionAdd = L.bind(hp.renderSectionAdd, this, ss);
 
 		ss.renderRowActions = function(section_id) {
-			
+
 			let nodeType = uci.get(data[0], section_id, 'node');
-			let isUrltest = (nodeType === 'urltest' || nodeType !== 'selector' );			
-			
+			let isUrltest = (nodeType === 'urltest' || nodeType !== 'selector');
+
 			// 调用父方法渲染 Edit 按钮
 			let tdEl = form.GridSection.prototype.renderRowActions.call(
 				this,
@@ -1566,7 +1583,29 @@ return view.extend({
 
 			let btns = tdEl.querySelector('div');
 
-			// ⭐ Group Manager
+			// ============================================================
+			// 找到排序手柄，并把它移到 btns 的最前面
+			// ============================================================
+			let handle =
+				tdEl.querySelector('.cbi-sortable-handle') ||
+				tdEl.querySelector('.cbi-drag-handle') ||
+				tdEl.querySelector('[class*="sortable"]') ||
+				tdEl.querySelector('[class*="drag-handle"]');
+
+			if (handle) {
+				// 如果手柄不在 btns 里（在 tdEl 层级），先把它搬进 btns 最前
+				if (handle.parentNode !== btns) {
+					btns.insertBefore(handle, btns.firstChild);
+				}
+				// 如果已经在 btns 里，也确保它排到最前
+				else if (btns.firstChild !== handle) {
+					btns.insertBefore(handle, btns.firstChild);
+				}
+			}
+
+			// ============================================================
+			// ⭐ Group Members（插到手柄之后）
+			// ============================================================
 			btns.insertBefore(
 				E('button', {
 					'class': 'cbi-button cbi-button-action',
@@ -1575,10 +1614,12 @@ return view.extend({
 						openNodeManager(section_id, this.map);
 					})
 				}, _('Group Members')),
-				btns.firstChild
+				handle ? handle.nextSibling : btns.firstChild
 			);
 
-			// ⭐ Outbound Manager
+			// ============================================================
+			// ⭐ Default Outbound（插到 Group Members 之后）
+			// ============================================================
 			btns.insertBefore(
 				E('button', {
 					'class': 'cbi-button cbi-button-action',
@@ -1605,7 +1646,8 @@ return view.extend({
 						);
 					})
 				}, _('Default Outbound')),
-				btns.firstChild
+				// 插在 Group Members 之后：先找到刚插入的 Group Members
+				btns.children[handle ? 2 : 1] || null
 			);
 
 			return tdEl;
@@ -1792,24 +1834,37 @@ return view.extend({
 
 			let btns = tdEl.querySelector('div');
 
-			btns.insertBefore(
-				E('button', {
-					'class': 'cbi-button cbi-button-action',
-					click: ui.createHandlerFn(this, function() {
+			/* 在整行范围内找排序手柄 */
+			let handle =
+				tdEl.querySelector('.cbi-sortable-handle') ||
+				tdEl.querySelector('.cbi-drag-handle') ||
+				tdEl.querySelector('[class*="sortable"]') ||
+				tdEl.querySelector('[class*="drag-handle"]');
 
-						openRuleSetManager(
-							section_id,
-							data[0],
-							this.map
-						);
+			let button = E('button', {
+				'class': 'cbi-button cbi-button-action',
+				click: ui.createHandlerFn(this, function() {
+					openRuleSetManager(
+						section_id,
+						data[0],
+						this.map
+					);
+				})
+			}, _('Rule Sets'));
 
-					})
-				}, _('Rule Sets')),
-				btns.firstChild
-			);
+			if (handle && handle.parentNode) {
+				/* 手柄存在：插到手柄后面 */
+				handle.parentNode.insertBefore(button, handle.nextSibling);
+				button.style.whiteSpace = 'nowrap';
+				button.style.verticalAlign = 'middle';
+			}
+			else {
+				/* 没有手柄：退回插到 btns 最前 */
+				btns.insertBefore(button, btns.firstChild);
+			}
 
 			return tdEl;
-		};		
+		};	
 
 		ss.tab('field_other', _('Other fields'));
 		ss.tab('field_host', _('Host/IP fields'));
@@ -2132,91 +2187,89 @@ return view.extend({
 				'style': 'margin-right: 5px; display: inline-block; vertical-align: middle;'
 			}, _('Download'));
 
-			if (local_ruleset !== '1') {
+
+			button.addEventListener('click', async () => {
+				const url = uci.get(data[0], section_id, 'url');
+				const filename = uci.get(data[0], section_id, 'filename');
+
+				if (!url) {
+					ui.addNotification(
+						null,
+						E('p', _('Rule set URL is empty.')),
+						'error'
+					);
+					return;
+				}
+
+				if (!filename) {
+					ui.addNotification(
+						null,
+						E('p', _('Rule set filename is empty.')),
+						'error'
+					);
+					return;
+				}
+
+				/*
+					* local ruleset 只保存 filename，
+					* 完整路径由 route_setting.ruleset_path + filename 生成。
+					*/
+				const rulesetPath =
+					uci.get(data[0], 'route_setting', 'ruleset_path') ||
+					'/etc/homeproxy/';
+
+				const path =
+					rulesetPath.replace(/\/+$/, '') + '/' + filename;
+
 				button.disabled = true;
-				button.classList.add('disabled');
-			}
-			else {
-				button.addEventListener('click', async () => {
-					const url = uci.get(data[0], section_id, 'url');
-					const filename = uci.get(data[0], section_id, 'filename');
+				button.textContent = _('Downloading...');
 
-					if (!url) {
+				try {
+					const result = await hp.downloadRuleset(url, path);
+
+					if (result?.result === true) {
 						ui.addNotification(
 							null,
-							E('p', _('Rule set URL is empty.')),
-							'error'
+							E('p', _('Rule set downloaded successfully.')),
+							'success'
 						);
-						return;
 					}
-
-					if (!filename) {
+					else {
 						ui.addNotification(
 							null,
-							E('p', _('Rule set filename is empty.')),
-							'error'
-						);
-						return;
-					}
-
-					/*
-					 * local ruleset 只保存 filename，
-					 * 完整路径由 route_setting.ruleset_path + filename 生成。
-					 */
-					const rulesetPath =
-						uci.get(data[0], 'route_setting', 'ruleset_path') ||
-						'/etc/homeproxy/';
-
-					const path =
-						rulesetPath.replace(/\/+$/, '') + '/' + filename;
-
-					button.disabled = true;
-					button.textContent = _('Downloading...');
-
-					try {
-						const result = await hp.downloadRuleset(url, path);
-
-						if (result?.result === true) {
-							ui.addNotification(
-								null,
-								E('p', _('Rule set downloaded successfully.')),
-								'success'
-							);
-						}
-						else {
-							ui.addNotification(
-								null,
-								E('p', result?.error || _('Rule set download failed.')),
-								'error'
-							);
-						}
-					}
-					catch (err) {
-						ui.addNotification(
-							null,
-							E('p', err.message || _('Rule set download failed.')),
+							E('p', result?.error || _('Rule set download failed.')),
 							'error'
 						);
 					}
-					finally {
-						button.disabled = false;
-						button.textContent = _('Download');
-					}
-				});
-			}
+				}
+				catch (err) {
+					ui.addNotification(
+						null,
+						E('p', err.message || _('Rule set download failed.')),
+						'error'
+					);
+				}
+				finally {
+					button.disabled = false;
+					button.textContent = _('Download');
+				}
+			});
+
 
 			/*
 			 * LuCI GridSection 的 Edit/Delete 通常位于 actions 的内部容器。
 			 * 把 Download 插入到同一个容器，而不是直接插到外层。
 			 */
-			const container =
-				actions.querySelector('.cbi-section-table-cell') ||
-				actions.querySelector('.cbi-section-actions') ||
-				actions;
+			const handle = actions.querySelector('.cbi-sortable-handle')
+						|| actions.querySelector('[class*="sortable"]')
+						|| actions.querySelector('[class*="drag"]');
 
-			container.style.whiteSpace = 'nowrap';
-
-			container.insertBefore(button, container.firstChild);
+			if (handle && handle.parentNode) {
+				handle.parentNode.insertBefore(button, handle.nextSibling);
+			}
+			else {
+				container.insertBefore(button, container.firstChild);
+			}
 
 			return actions;
 		};
