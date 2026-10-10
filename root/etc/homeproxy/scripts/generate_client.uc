@@ -63,9 +63,9 @@ const autoroute = uci.get(uciconfig, uciroutingsetting, 'autoroute');
 let main_node, main_udp_node, dedicated_udp_node,
     sniff_override, dns_server, china_dns_server, dns_default_strategy,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
-    dns_client_subnet, cache_file_store_dns, cache_file_store_fakeip, gfw_domain_list, direct_domain_list, ruleset_path,
-    proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, default_http_client, inserted_dns_server, domain_strategy,
-	enable_clash_api, enable_fakeip, local_ruleset;
+    dns_client_subnet, cache_file_store_dns, cache_file_store_fakeip, gfw_domain_list, direct_domain_list,
+    proxy_domain_list, resolve, route_rule_select, inserted_dns_server, domain_strategy, ruleset_path, local_ruleset,
+	default_outbound, default_outbound_dns, default_http_client, enable_clash_api, enable_fakeip;
 
 if (routing_mode !== 'custom') {
 	main_node = uci.get(uciconfig, ucimain, 'main_node') || 'nil';
@@ -98,7 +98,6 @@ if (routing_mode !== 'custom') {
 } else {
 	/* DNS settings */
 	dns_default_strategy = uci.get(uciconfig, ucidnssetting, 'default_strategy');
-	dns_default_server = uci.get(uciconfig, ucidnssetting, 'default_server');
 	dns_disable_cache = uci.get(uciconfig, ucidnssetting, 'disable_cache');
 	dns_disable_cache_expire = uci.get(uciconfig, ucidnssetting, 'disable_cache_expire');
 	dns_independent_cache = uci.get(uciconfig, ucidnssetting, 'independent_cache');
@@ -109,14 +108,6 @@ if (routing_mode !== 'custom') {
 	/* Routing settings */
 	resolve = uci.get(uciconfig, uciroutesetting, 'resolve');
 	route_rule_select = uci.get(uciconfig, uciroutesetting, 'route_rule_select');
-	default_outbound = uci.get(uciconfig, uciroutesetting, 'default_outbound') || 'nil';
-	default_outbound_dns = uci.get(uciconfig, uciroutesetting, 'default_outbound_dns') || 'default-dns';
-	default_http_client = uci.get(uciconfig, uciroutesetting, 'http_client') || null;
-	if (default_http_client) {
-		const enabled = uci.get(uciconfig, ucihttpclient, default_http_client, 'enabled');
-		if (enabled === '0')
-			default_http_client = null;
-	}
 	ruleset_path = uci.get(uciconfig, uciroutesetting, 'ruleset_path') || '/etc/homeproxy/';
 	if (substr(ruleset_path, -1) != '/')
 		ruleset_path += '/';
@@ -125,7 +116,15 @@ if (routing_mode !== 'custom') {
 	local_ruleset = uci.get(uciconfig, uciroutesetting, 'local_ruleset');
 }
 sniff_override = uci.get(uciconfig, uciroutingsetting, 'sniff_override');
-/* Clash Mode */
+default_outbound = uci.get(uciconfig, uciroutesetting, 'default_outbound') || 'nil';
+default_outbound_dns = uci.get(uciconfig, uciroutesetting, 'default_outbound_dns') || 'default-dns';
+dns_default_server = uci.get(uciconfig, ucidnssetting, 'default_server');
+default_http_client = uci.get(uciconfig, uciroutesetting, 'http_client') || null;
+if (default_http_client) {
+	const enabled = uci.get(uciconfig, ucihttpclient, default_http_client, 'enabled');
+	if (enabled === '0')
+		default_http_client = null;
+}
 enable_clash_api = uci.get(uciconfig, uciclash, 'enable_clash_api') || '0';
 
 const proxy_mode = uci.get(uciconfig, ucimain, 'proxy_mode') || 'redirect_tproxy',
@@ -532,11 +531,11 @@ if (!isEmpty(main_node)) {
 	if (enable_clash_api === '1') {
 		push(config.dns.rules, {
 			clash_mode: 'direct',
-			server: (direct_dns) ? direct_dns : 'default-dns'
+			server: get_resolver(default_outbound_dns)
 		});
 		push(config.dns.rules, {
 		clash_mode: 'global',
-		server: (global_dns) ? global_dns : 'foreign'
+		server: get_resolver(dns_default_server)
 		});
 	} 
 	if (length(direct_domain_list))
