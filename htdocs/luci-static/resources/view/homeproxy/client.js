@@ -2642,53 +2642,6 @@ return view.extend({
 		so.value('global', 'Global');
 		so.depends('enable_clash_api', '1');
 
-		so = ss.option(form.ListValue, 'direct_dns', _('Clash Mode DIRECT DNS'),
-			_('Direct DNS for Clash Mode.'));
-		so.load = function (section_id) {
-			delete this.keylist;
-			delete this.vallist;
-			this.value('default-dns', _('Default DNS (issued by WAN)'));
-			uci.sections(data[0], 'dns_server', (res) => {
-				this.value(res.label, res.label);
-			});
-			return this.super('load', section_id);
-		}
-		so.depends('enable_clash_api', '1');
-
-		so = ss.option(form.ListValue, 'global_dns', _('Clash Mode GLOBAL DNS'),
-			_('Global DNS for Clash Mode.'));
-		so.load = function (section_id) {
-			delete this.keylist;
-			delete this.vallist;
-			uci.sections(data[0], 'dns_server', (res) => {
-				this.value(res.label, res.label);
-			});
-			return this.super('load', section_id);
-		}
-		so.depends('enable_clash_api', '1');
-
-		so = ss.option(form.ListValue, 'direct_outbound', _('Clash Mode DIRECT Outbound'),
-			_('Direct outbound for Clash Mode.'));
-		so.load = function (section_id) {
-			delete this.keylist;
-			delete this.vallist;
-			this.value('direct-out', _('Direct'));
-			return this.super('load', section_id);
-		}
-		so.depends('enable_clash_api', '1');
-		so.readonly = true;
-
-		so = ss.option(form.ListValue, 'global_outbound', _('Clash Mode GLOBAL Outbound'),
-			_('Global outbound for Clash Mode.'));
-		so.load = function (section_id) {
-			delete this.keylist;
-			delete this.vallist;
-			
-			this.value('GLOBAL', _('GLOBAL'));
-			return this.super('load', section_id);
-		}
-		so.depends('enable_clash_api', '1');
-		so.readonly = true;
 		/* clash_api settings end */
 
 		/* HTTP clients start */
