@@ -65,7 +65,7 @@ let main_node, main_udp_node, dedicated_udp_node,
     dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
     dns_client_subnet, cache_file_store_dns, cache_file_store_fakeip, gfw_domain_list, direct_domain_list, ruleset_path,
     proxy_domain_list, resolve, route_rule_select, default_outbound, default_outbound_dns, default_http_client, inserted_dns_server, domain_strategy,
-	enable_clash_api, global_outbound, direct_outbound, global_dns, direct_dns, enable_fakeip, local_ruleset;
+	enable_clash_api, enable_fakeip, local_ruleset;
 
 if (routing_mode !== 'custom') {
 	main_node = uci.get(uciconfig, ucimain, 'main_node') || 'nil';
@@ -127,10 +127,6 @@ if (routing_mode !== 'custom') {
 sniff_override = uci.get(uciconfig, uciroutingsetting, 'sniff_override');
 /* Clash Mode */
 enable_clash_api = uci.get(uciconfig, uciclash, 'enable_clash_api') || '0';
-global_outbound = uci.get(uciconfig, uciclash, 'global_outbound');
-direct_outbound = uci.get(uciconfig, uciclash, 'direct_outbound');
-global_dns = uci.get(uciconfig, uciclash, 'global_dns');
-direct_dns = uci.get(uciconfig, uciclash, 'direct_dns');
 
 const proxy_mode = uci.get(uciconfig, ucimain, 'proxy_mode') || 'redirect_tproxy',
       default_interface = uci.get(uciconfig, ucicontrol, 'bind_interface');
@@ -629,11 +625,11 @@ if (!isEmpty(main_node)) {
 	if (enable_clash_api === '1') {
 		push(config.dns.rules, {
 			clash_mode: 'direct',
-			server: (direct_dns) ? direct_dns : 'default-dns'
+			server: get_resolver(default_outbound_dns)
 		});
 		push(config.dns.rules, {
 		clash_mode: 'global',
-		server: (global_dns) ? global_dns : 'foreign'
+		server: get_resolver(dns_default_server)
 		});
 	} 
 	uci.foreach(uciconfig, ucidnsrule, (cfg) => {
@@ -1123,7 +1119,7 @@ if (!isEmpty(main_node)) {
 		});
 		push(config.route.rules, {
 			clash_mode: 'global',
-			outbound: (global_outbound) ? global_outbound : 'main-out',
+			outbound: (get_outbound(default_outbound)) ? get_outbound(default_outbound) : 'main-out',
 		});
 
 	/* Direct list */
@@ -1262,11 +1258,11 @@ if (!isEmpty(main_node)) {
 	if (enable_clash_api === '1')
 		push(config.route.rules, {
 			clash_mode: 'direct',
-			outbound: (direct_outbound === 'direct-out') ? '🇨🇳 直连' : direct_outbound,
+			outbound: '🇨🇳 直连'
 		});
 		push(config.route.rules, {
 			clash_mode: 'global',
-			outbound: (global_outbound) ? global_outbound : 'main-out',
+			outbound:  get_outbound(default_outbound)
 		});
 	if (resolve === '1' && route_rule_select === 'first_route_rule'){
 		push(config.route.rules, {
