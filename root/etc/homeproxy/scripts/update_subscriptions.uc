@@ -570,9 +570,19 @@ function parse_uri(uri) {
 }
 
 function main() {
-	if (via_proxy !== '1') {
-		log('Stopping service...');
-		service_action('stop');
+	let result = system('pgrep -x sing-box');
+	let need_restart = false;
+	if (result == 0) {
+		if (via_proxy == '1') {
+			need_restart = true;
+		} else {
+			log('Stopping service...');
+			service_action('stop');
+		}
+	} else {
+		if (via_proxy == '1') {
+		log('WARNING: Sing-box is NOT running. Subscription will be updated without proxy.');
+		}
 	}
 
 	for (let url in subscription_urls) {
@@ -725,7 +735,6 @@ function main() {
 	}
 	uci.commit(uciconfig);
 
-	let need_restart = (via_proxy !== '1');
 	if (!isEmpty(main_node)) {
 		const first_server = uci.get_first(uciconfig, ucinode);
 		if (first_server) {
@@ -745,7 +754,6 @@ function main() {
 			if ((main_node === 'urltest') ? !length(main_urltest_nodes) : !uci.get(uciconfig, main_node)) {
 				uci.set(uciconfig, ucimain, 'main_node', first_server);
 				uci.commit(uciconfig);
-				need_restart = true;
 
 				log('Main node is gone, switching to the first node.');
 			}
@@ -767,7 +775,6 @@ function main() {
 				if ((main_udp_node === 'urltest') ? !length(main_udp_urltest_nodes) : !uci.get(uciconfig, main_udp_node)) {
 					uci.set(uciconfig, ucimain, 'main_udp_node', first_server);
 					uci.commit(uciconfig);
-					need_restart = true;
 
 					log('Main UDP node is gone, switching to the first node.');
 				}
@@ -776,14 +783,13 @@ function main() {
 			uci.set(uciconfig, ucimain, 'main_node', 'nil');
 			uci.set(uciconfig, ucimain, 'main_udp_node', 'nil');
 			uci.commit(uciconfig);
-			need_restart = true;
 
 			log('No available node, disable tproxy.');
 		}
 	}
 
 	if (need_restart) {
-		log('Restarting service...');
+		log('Reloading service...');
 		service_action('stop');
 		service_action('start');
 	}
