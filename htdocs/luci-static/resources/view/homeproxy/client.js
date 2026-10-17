@@ -806,6 +806,11 @@ return view.extend({
 		o.rmempty = false;
 		o.editable = true;
 
+		o = s.taboption('routing', form.Flag, 'core_only', _('Core Only'),);
+		o.default = o.disabled;
+		o.rmempty = false;
+		o.editable = true;
+
 		o = s.taboption('routing', form.ListValue, 'routing_mode', _('Routing mode'));
 		o.value('gfwlist', _('GFWList'));
 		o.value('bypass_mainland_china', _('Bypass mainland China'));
