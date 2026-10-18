@@ -1110,7 +1110,7 @@ config.route = {
 		{inbound: 'dns-in',	action: 'hijack-dns'}
 	],
 	rule_set: [],
-	auto_detect_interface:  (core_only === '1') ? true : (default_interface),
+	auto_detect_interface:  (core_only === '1') ? true : (default_interface === null),
 	default_interface: default_interface || null,
 	...(version_14_plus ? { default_http_client: default_http_client } : '')
 };
